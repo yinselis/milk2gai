@@ -30794,6 +30794,8 @@ const savedCover = safeGetItem(APP_PREFIX + 'playerCover');
         songs = [...latestSystemSongs];
     }
 
+window._currentAppMusicSongs = songs; 
+
     const player = document.getElementById('player');
     const miniView = document.getElementById('mini-view');
     const playlist = document.getElementById('playlist');
@@ -30873,6 +30875,7 @@ const savedCover = safeGetItem(APP_PREFIX + 'playerCover');
     }
 
     function savePlaylist() {
+    window._currentAppMusicSongs = songs; 
         localforage.setItem(APP_PREFIX + 'customSongs', songs).catch(e => {
             console.error('歌单保存失败', e);
             showNotification('歌单保存失败，存储空间可能已满', 'error');
@@ -31659,15 +31662,23 @@ window.playSharedMusic = function(url, title, artist, cover) {
     }
 };
 
-// 2. 发送音乐卡片的核心函数（自带漂亮 CSS）
+// 2. 发送音乐卡片的核心函数（紧凑改良版）
 window.sendMusicCard = function(title, artist, url, cover) {
+    if (!document.getElementById('music-card-global-style')) {
+        const style = document.createElement('style');
+        style.id = 'music-card-global-style';
+        style.innerHTML = `
+            .message:has(.music-share-card) { background: transparent !important; box-shadow: none !important; padding: 0 !important; border: none !important; }
+        `;
+        document.head.appendChild(style);
+    }
+
     const hasUrl = !!url;
-    // 如果有封面就显示封面，没封面显示音符
+    // 封面或音符，大小缩小到 34px
     const coverHtml = cover
         ? `<img src="${cover}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
-        : `<i class="fas fa-music" style="font-size:15px;"></i>`;
+        : `<i class="fas fa-music" style="font-size:14px;"></i>`;
 
-    // 防错处理转义单引号
     const safeUrl = hasUrl ? url.replace(/'/g, "\\'") : '';
     const safeTitle = (title || '未知歌曲').replace(/'/g, "\\'");
     const safeArtist = (artist || '未知歌手').replace(/'/g, "\\'");
@@ -31677,39 +31688,37 @@ window.sendMusicCard = function(title, artist, url, cover) {
     const cursorStyle = hasUrl ? 'cursor:pointer;' : '';
     const playIconColor = hasUrl ? 'var(--accent-color)' : 'var(--text-secondary)';
 
+    // 卡片整体 padding 改小，gap改小，总宽度缩减到 200px
     const cardHtml = `
-    <div class="music-share-card" ${clickAction} style="display:flex;align-items:center;gap:12px;background:var(--primary-bg);border:1px solid rgba(var(--accent-color-rgb),0.2);border-radius:12px;padding:10px 14px;width:220px;text-align:left;box-shadow:0 2px 10px rgba(0,0,0,0.05);margin:0; ${cursorStyle}">
-        <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg, var(--accent-color), rgba(var(--accent-color-rgb),0.6));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(var(--accent-color-rgb),0.3);">
+    <div class="music-share-card" ${clickAction} style="display:flex;align-items:center;gap:10px;background:var(--primary-bg);border:1px solid rgba(var(--accent-color-rgb),0.2);border-radius:10px;padding:6px 10px;width:200px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:0; ${cursorStyle}">
+        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg, var(--accent-color), rgba(var(--accent-color-rgb),0.6));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(var(--accent-color-rgb),0.3);">
             ${coverHtml}
         </div>
         <div style="flex:1;overflow:hidden;">
-            <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin-bottom:3px;">${title}</div>
-            <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;">${artist}</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin-bottom:1px;">${title}</div>
+            <div style="font-size:10px;color:var(--text-secondary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;">${artist}</div>
         </div>
-        <div style="color:${playIconColor};font-size:22px;opacity:0.8;">
+        <div style="color:${playIconColor};font-size:18px;opacity:0.8;">
             <i class="far fa-play-circle"></i>
         </div>
     </div>
-    <!-- 隐形的黑魔法：自动熔化外部自带气泡 -->
-    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="var p=this.closest('.message');if(p){p.style.background='transparent';p.style.boxShadow='none';p.style.padding='0';p.style.border='none';}" style="display:none;">`;
+    <!-- 隐形的黑魔法兜底 -->
+    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="setTimeout(()=>{var p=this.closest('.message');if(p){p.style.setProperty('background', 'transparent', 'important');p.style.setProperty('box-shadow', 'none', 'important');p.style.setProperty('padding', '0', 'important');p.style.setProperty('border', 'none', 'important');}}, 10);" style="display:none;">`;
     
-    // 插入消息
     addMessage({
-        id: Date.now(),
-        sender: 'user',
-        text: cardHtml,
-        timestamp: new Date(),
-        status: 'sent',
-        favorited: false,
-        type: 'normal'
+        id: Date.now(), sender: 'user', text: cardHtml, timestamp: new Date(), status: 'sent', favorited: false, type: 'normal'
     });
+    
+    if (typeof playSound === 'function') playSound('send');
+    setTimeout(() => { if(typeof simulateReply === 'function') simulateReply(); }, 1500 + Math.random() * 2000);
+};
     
     if (typeof playSound === 'function') playSound('send');
     // 延迟触发对方的自动回复
     setTimeout(() => { if(typeof simulateReply === 'function') simulateReply(); }, 1500 + Math.random() * 2000);
 };
 
-// 3. 打开分享面板
+// 3. 打开分享面板 (全面打通内置与新增歌单)
 window.openMusicShareModal = async function() {
     let modal = document.getElementById('dynamic-music-share-modal');
     if (!modal) {
@@ -31723,7 +31732,6 @@ window.openMusicShareModal = async function() {
                 <i class="fas fa-music"></i><span>分享音乐</span>
             </div>
             
-            <!-- 下拉框：选择已有的歌单音乐 -->
             <div style="margin-bottom:12px;">
                 <label style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;display:block;">从已有歌单快速选择：</label>
                 <select id="music-share-selector" class="modal-input" style="padding:8px;font-size:12px;width:100%;margin-bottom:0;">
@@ -31733,7 +31741,6 @@ window.openMusicShareModal = async function() {
 
             <div style="border-top:1px dashed var(--border-color); margin:12px 0;"></div>
 
-            <!-- 网易云API提取 -->
             <div style="margin-bottom:8px;font-size:11px;color:var(--text-secondary);">
                 或粘贴网易云分享链接 (支持黑科技提取封面和播放链接)
             </div>
@@ -31762,19 +31769,15 @@ window.openMusicShareModal = async function() {
         const coverInput = modal.querySelector('#music-share-cover');
         const selector = modal.querySelector('#music-share-selector');
         
-        // 监听歌单选择
-        selector.addEventListener('change', async (e) => {
+        // 【关键修复】直接从全局桥梁读取最新歌单
+        selector.addEventListener('change', (e) => {
             const idx = e.target.value;
-            if (idx !== '') {
-                try {
-                    const saved = await localforage.getItem(APP_PREFIX + 'customSongs');
-                    if(saved && saved[idx]) {
-                        titleInput.value = saved[idx].title || '';
-                        artistInput.value = saved[idx].sub || '';
-                        urlInput.value = saved[idx].url || '';
-                        coverInput.value = ''; // 歌单里没有存封面就不显示
-                    }
-                } catch(err){}
+            if (idx !== '' && window._currentAppMusicSongs && window._currentAppMusicSongs[idx]) {
+                const song = window._currentAppMusicSongs[idx];
+                titleInput.value = song.title || '';
+                artistInput.value = song.sub || '';
+                urlInput.value = song.url || '';
+                coverInput.value = ''; // 歌单里没有存封面就不显示
             }
         });
 
@@ -31782,25 +31785,16 @@ window.openMusicShareModal = async function() {
         inputArea.addEventListener('input', async () => {
             const text = inputArea.value;
             if(!text) return;
-            
-            // 先尝试提取基础文字
             const wyMatch = text.match(/分享(.*?)的单曲《(.*?)》/);
             const qqMatch = text.match(/(.*?)《(.*?)》/);
-            if (wyMatch) {
-                artistInput.value = wyMatch[1].trim();
-                titleInput.value = wyMatch[2].trim();
-            } else if (qqMatch) {
-                artistInput.value = qqMatch[1].trim();
-                titleInput.value = qqMatch[2].trim();
-            }
+            if (wyMatch) { artistInput.value = wyMatch[1].trim(); titleInput.value = wyMatch[2].trim(); } 
+            else if (qqMatch) { artistInput.value = qqMatch[1].trim(); titleInput.value = qqMatch[2].trim(); }
 
-            // 【高能黑科技】使用公共 API 提取网易云封面与直链
             const idMatch = text.match(/id=(\d+)/);
             if (idMatch && text.includes('163.com')) {
                 const songId = idMatch[1];
                 if(typeof showNotification==='function') showNotification('检测到网易云，正在黑科技提取...', 'info', 1500);
                 try {
-                    // 使用稳定的 Meting 公益 API
                     const res = await fetch(`https://api.injahow.cn/meting/?server=netease&type=song&id=${songId}`);
                     const data = await res.json();
                     if(data && data.length > 0) {
@@ -31812,13 +31806,11 @@ window.openMusicShareModal = async function() {
                         if(typeof showNotification==='function') showNotification('提取成功！包含封面和可播放链接', 'success', 2000);
                     }
                 } catch(err) {
-                    console.warn('API提取失败, 降级使用基础直链', err);
                     urlInput.value = `http://music.163.com/song/media/outer/url?id=${songId}.mp3`;
                 }
             }
         });
         
-        // 确认发送
         modal.querySelector('#music-share-confirm-btn').addEventListener('click', () => {
             const title = titleInput.value.trim() || '未知歌曲';
             const artist = artistInput.value.trim() || '未知歌手';
@@ -31829,37 +31821,29 @@ window.openMusicShareModal = async function() {
             
             if(typeof hideModal === 'function') hideModal(modal);
             setTimeout(() => {
-                inputArea.value = '';
-                titleInput.value = '';
-                artistInput.value = '';
-                urlInput.value = '';
-                coverInput.value = '';
-                selector.value = '';
+                inputArea.value = ''; titleInput.value = ''; artistInput.value = '';
+                urlInput.value = ''; coverInput.value = ''; selector.value = '';
             }, 300);
         });
 
-        // 取消
         modal.querySelector('#music-share-cancel-btn').addEventListener('click', () => {
             if(typeof hideModal === 'function') hideModal(modal);
         });
     }
 
-    // 每次打开弹窗前，动态加载当前的歌单进入下拉列表
-    try {
-        const selector = modal.querySelector('#music-share-selector');
-        if (selector) {
-            const saved = await localforage.getItem(APP_PREFIX + 'customSongs');
-            selector.innerHTML = '<option value="">-- 点击选择歌单中的音乐 --</option>';
-            if (saved && Array.isArray(saved)) {
-                saved.forEach((song, idx) => {
-                    const opt = document.createElement('option');
-                    opt.value = idx;
-                    opt.textContent = `${song.title} - ${song.sub}`;
-                    selector.appendChild(opt);
-                });
-            }
+    // 每次打开弹窗前，动态加载当前的完整歌单
+    const selector = modal.querySelector('#music-share-selector');
+    if (selector) {
+        selector.innerHTML = '<option value="">-- 点击选择歌单中的音乐 --</option>';
+        if (window._currentAppMusicSongs && Array.isArray(window._currentAppMusicSongs)) {
+            window._currentAppMusicSongs.forEach((song, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = `${song.title} - ${song.sub}`;
+                selector.appendChild(opt);
+            });
         }
-    } catch(e) {}
+    }
     
     if(typeof showModal === 'function') showModal(modal);
 };
