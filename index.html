@@ -31617,92 +31617,104 @@ window.exitCollapseMode = function() {
 })();
 
 // ==========================================
-// 音乐分享卡片与提取功能 (终极版：歌单+API提取+点击播放)
+// 音乐分享卡片与提取功能 (旧版大尺寸外观 + 独立无缝播放)
 // ==========================================
 
-// 1. 全局播放函数 (点击聊天框里的音乐卡片时调用)
-window.playSharedMusic = function(url, title, artist, cover) {
+// 1. 卡片独立播放控制 (不唤出主播放器)
+window.toggleInlineMusic = function(btn) {
+    const card = btn.closest('.music-share-card');
+    const url = card.dataset.url;
     if (!url || url === 'undefined') {
         if(typeof showNotification==='function') showNotification('这首歌没有找到播放链接哦', 'warning');
         return;
     }
+    
     const audio = document.getElementById('audio');
-    const player = document.getElementById('player');
-    if (audio && player) {
-        audio.src = url;
-        document.getElementById('music-title').innerText = title || '未知歌曲';
-        document.getElementById('music-subtitle').innerText = artist || '未知歌手';
+    const icon = card.querySelector('.music-play-btn i');
+    
+    // 判断当前 audio 是否正在播放这首歌
+    const isCurrentSong = audio.src.includes(url) || url.includes(audio.src);
+    const isPlaying = !audio.paused;
 
-        // 设置黑胶封面
-        const vinylRecord = document.getElementById('vinyl-record-visual');
-        if (vinylRecord) {
-            if (cover && cover !== 'undefined') {
-                vinylRecord.style.backgroundImage = `url(${cover})`;
-                vinylRecord.style.backgroundSize = 'cover';
-                vinylRecord.classList.add('has-cover');
-                vinylRecord.style.borderWidth = '1px';
-            } else {
-                vinylRecord.style.backgroundImage = '';
-                vinylRecord.classList.remove('has-cover');
-                vinylRecord.style.borderWidth = '2px';
-            }
+    // 先把页面上所有音乐卡片的图标恢复成“播放”状态
+    document.querySelectorAll('.music-share-card .music-play-btn i').forEach(el => {
+        el.className = 'far fa-play-circle';
+    });
+
+    if (isCurrentSong && isPlaying) {
+        // 正在播放当前歌曲，则暂停
+        audio.pause();
+        icon.className = 'far fa-play-circle';
+    } else {
+        // 播放新歌或继续播放
+        if (!isCurrentSong) {
+            audio.src = url;
         }
-
-        // 弹起播放器并播放
-        player.classList.add('visible');
-        player.classList.remove('collapsed');
         audio.play().then(() => {
-            document.getElementById('icon-play').style.display = 'none';
-            document.getElementById('icon-pause').style.display = 'block';
-            player.classList.add('playing');
-            if(typeof showNotification==='function') showNotification(`正在播放: ${title}`, 'success', 1500);
+            icon.className = 'far fa-pause-circle';
         }).catch(e => {
-            if(typeof showNotification==='function') showNotification('播放失败，可能链接已失效或需要会员', 'error');
+            if(typeof showNotification==='function') showNotification('播放失败，可能链接已失效', 'error');
+            icon.className = 'far fa-play-circle';
         });
     }
 };
 
-// 2. 发送音乐卡片的核心函数（紧凑改良版）
+// 监听播放结束事件，让图标自动恢复
+document.addEventListener('DOMContentLoaded', () => {
+    const audio = document.getElementById('audio');
+    if(audio) {
+        audio.addEventListener('ended', () => {
+            document.querySelectorAll('.music-share-card .music-play-btn i').forEach(el => {
+                el.className = 'far fa-play-circle';
+            });
+        });
+    }
+});
+
+// 2. 发送音乐卡片的核心函数（恢复旧版大尺寸外观）
 window.sendMusicCard = function(title, artist, url, cover) {
+    // 动态植入卡片特有的紧凑 CSS，修复时间戳过远的问题
     if (!document.getElementById('music-card-global-style')) {
         const style = document.createElement('style');
         style.id = 'music-card-global-style';
         style.innerHTML = `
             .message:has(.music-share-card) { background: transparent !important; box-shadow: none !important; padding: 0 !important; border: none !important; }
+            .message-wrapper:has(.music-share-card) { margin-bottom: 2px !important; }
+            .message-wrapper:has(.music-share-card) .message-meta { margin-top: 4px !important; }
         `;
         document.head.appendChild(style);
     }
 
     const hasUrl = !!url;
-    // 封面或音符，大小缩小到 34px
+    // 恢复原来的大尺寸头像
     const coverHtml = cover
         ? `<img src="${cover}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
-        : `<i class="fas fa-music" style="font-size:14px;"></i>`;
+        : `<i class="fas fa-music" style="font-size:18px;"></i>`;
 
     const safeUrl = hasUrl ? url.replace(/'/g, "\\'") : '';
     const safeTitle = (title || '未知歌曲').replace(/'/g, "\\'");
     const safeArtist = (artist || '未知歌手').replace(/'/g, "\\'");
     const safeCover = cover ? cover.replace(/'/g, "\\'") : '';
 
-    const clickAction = hasUrl ? `onclick="window.playSharedMusic('${safeUrl}', '${safeTitle}', '${safeArtist}', '${safeCover}')"` : '';
+    const clickAction = hasUrl ? `onclick="window.toggleInlineMusic(this)"` : '';
     const cursorStyle = hasUrl ? 'cursor:pointer;' : '';
     const playIconColor = hasUrl ? 'var(--accent-color)' : 'var(--text-secondary)';
 
-    // 卡片整体 padding 改小，gap改小，总宽度缩减到 200px
+    // 恢复旧版尺寸：宽 240px，行距拉开
     const cardHtml = `
-    <div class="music-share-card" ${clickAction} style="display:flex;align-items:center;gap:10px;background:var(--primary-bg);border:1px solid rgba(var(--accent-color-rgb),0.2);border-radius:10px;padding:6px 10px;width:200px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:0; ${cursorStyle}">
-        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg, var(--accent-color), rgba(var(--accent-color-rgb),0.6));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(var(--accent-color-rgb),0.3);">
+    <div class="music-share-card" data-url="${safeUrl}" ${clickAction} style="display:flex;align-items:center;gap:14px;background:var(--secondary-bg);border:1px solid rgba(var(--accent-color-rgb),0.15);border-radius:14px;padding:14px 16px;width:240px;text-align:left;box-shadow:0 4px 12px rgba(0,0,0,0.05);margin:0; ${cursorStyle}">
+        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, var(--accent-color), rgba(var(--accent-color-rgb),0.6));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 2px 8px rgba(var(--accent-color-rgb),0.3);">
             ${coverHtml}
         </div>
-        <div style="flex:1;overflow:hidden;">
-            <div style="font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin-bottom:1px;">${title}</div>
-            <div style="font-size:10px;color:var(--text-secondary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;">${artist}</div>
+        <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:4px;">
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;line-height:1.2;">${title}</div>
+            <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;line-height:1.2;">${artist}</div>
         </div>
-        <div style="color:${playIconColor};font-size:18px;opacity:0.8;">
+        <div class="music-play-btn" style="color:${playIconColor};font-size:24px;opacity:0.8;flex-shrink:0;">
             <i class="far fa-play-circle"></i>
         </div>
     </div>
-    <!-- 隐形的黑魔法兜底 -->
+    <!-- 隐形的黑魔法兜底，消除原本的气泡底色 -->
     <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="setTimeout(()=>{var p=this.closest('.message');if(p){p.style.setProperty('background', 'transparent', 'important');p.style.setProperty('box-shadow', 'none', 'important');p.style.setProperty('padding', '0', 'important');p.style.setProperty('border', 'none', 'important');}}, 10);" style="display:none;">`;
     
     addMessage({
@@ -31713,7 +31725,7 @@ window.sendMusicCard = function(title, artist, url, cover) {
     setTimeout(() => { if(typeof simulateReply === 'function') simulateReply(); }, 1500 + Math.random() * 2000);
 };
 
-// 3. 打开分享面板 (全面打通内置与新增歌单)
+// 3. 打开分享面板 (保持提取黑科技与下拉直选)
 window.openMusicShareModal = async function() {
     let modal = document.getElementById('dynamic-music-share-modal');
     if (!modal) {
@@ -31764,7 +31776,6 @@ window.openMusicShareModal = async function() {
         const coverInput = modal.querySelector('#music-share-cover');
         const selector = modal.querySelector('#music-share-selector');
         
-        // 【关键修复】直接从全局桥梁读取最新歌单
         selector.addEventListener('change', (e) => {
             const idx = e.target.value;
             if (idx !== '' && window._currentAppMusicSongs && window._currentAppMusicSongs[idx]) {
@@ -31772,11 +31783,10 @@ window.openMusicShareModal = async function() {
                 titleInput.value = song.title || '';
                 artistInput.value = song.sub || '';
                 urlInput.value = song.url || '';
-                coverInput.value = ''; // 歌单里没有存封面就不显示
+                coverInput.value = ''; 
             }
         });
 
-        // 监听文案输入 -> 触发 API 提取黑科技
         inputArea.addEventListener('input', async () => {
             const text = inputArea.value;
             if(!text) return;
@@ -31826,7 +31836,6 @@ window.openMusicShareModal = async function() {
         });
     }
 
-    // 每次打开弹窗前，动态加载当前的完整歌单
     const selector = modal.querySelector('#music-share-selector');
     if (selector) {
         selector.innerHTML = '<option value="">-- 点击选择歌单中的音乐 --</option>';
@@ -31843,7 +31852,7 @@ window.openMusicShareModal = async function() {
     if(typeof showModal === 'function') showModal(modal);
 };
 
-// 4. 拦截自带音乐播放器，植入分享小按钮 (带封面同步)
+// 4. 拦截自带音乐播放器，植入分享小按钮
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         const trackInfo = document.querySelector('.track-info');
@@ -31862,7 +31871,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const audio = document.getElementById('audio');
                 const url = audio ? audio.src : '';
                 
-                // 从黑胶唱片抓取封面
                 let cover = '';
                 const vinyl = document.getElementById('vinyl-record-visual');
                 if(vinyl && vinyl.style.backgroundImage && vinyl.style.backgroundImage.includes('url')) {
