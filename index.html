@@ -10862,6 +10862,22 @@
             outline: none;
         }
 
+/* ==========================================
+   音乐分享卡片专用样式 (去除外层气泡)
+   ========================================== */
+.message:has(.music-share-card) {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: visible !important;
+}
+
+/* 抵消鼠标悬停时产生的气泡高亮阴影 */
+.message:has(.music-share-card):hover {
+    box-shadow: none !important;
+    background: transparent !important;
+}
 </style>
 
     <style id="css-live-preview-style"></style>
@@ -31598,23 +31614,83 @@ window.exitCollapseMode = function() {
 })();
 
 // ==========================================
-// 音乐分享卡片与提取功能 (新增)
+// 音乐分享卡片与提取功能 (终极版：歌单+API提取+点击播放)
 // ==========================================
 
-// 1. 发送音乐卡片的核心函数（自带漂亮 CSS）
-window.sendMusicCard = function(title, artist) {
+// 1. 全局播放函数 (点击聊天框里的音乐卡片时调用)
+window.playSharedMusic = function(url, title, artist, cover) {
+    if (!url || url === 'undefined') {
+        if(typeof showNotification==='function') showNotification('这首歌没有找到播放链接哦', 'warning');
+        return;
+    }
+    const audio = document.getElementById('audio');
+    const player = document.getElementById('player');
+    if (audio && player) {
+        audio.src = url;
+        document.getElementById('music-title').innerText = title || '未知歌曲';
+        document.getElementById('music-subtitle').innerText = artist || '未知歌手';
+
+        // 设置黑胶封面
+        const vinylRecord = document.getElementById('vinyl-record-visual');
+        if (vinylRecord) {
+            if (cover && cover !== 'undefined') {
+                vinylRecord.style.backgroundImage = `url(${cover})`;
+                vinylRecord.style.backgroundSize = 'cover';
+                vinylRecord.classList.add('has-cover');
+                vinylRecord.style.borderWidth = '1px';
+            } else {
+                vinylRecord.style.backgroundImage = '';
+                vinylRecord.classList.remove('has-cover');
+                vinylRecord.style.borderWidth = '2px';
+            }
+        }
+
+        // 弹起播放器并播放
+        player.classList.add('visible');
+        player.classList.remove('collapsed');
+        audio.play().then(() => {
+            document.getElementById('icon-play').style.display = 'none';
+            document.getElementById('icon-pause').style.display = 'block';
+            player.classList.add('playing');
+            if(typeof showNotification==='function') showNotification(`正在播放: ${title}`, 'success', 1500);
+        }).catch(e => {
+            if(typeof showNotification==='function') showNotification('播放失败，可能链接已失效或需要会员', 'error');
+        });
+    }
+};
+
+// 2. 发送音乐卡片的核心函数（自带漂亮 CSS）
+window.sendMusicCard = function(title, artist, url, cover) {
+    const hasUrl = !!url;
+    // 如果有封面就显示封面，没封面显示音符
+    const coverHtml = cover
+        ? `<img src="${cover}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+        : `<i class="fas fa-music" style="font-size:15px;"></i>`;
+
+    // 防错处理转义单引号
+    const safeUrl = hasUrl ? url.replace(/'/g, "\\'") : '';
+    const safeTitle = (title || '未知歌曲').replace(/'/g, "\\'");
+    const safeArtist = (artist || '未知歌手').replace(/'/g, "\\'");
+    const safeCover = cover ? cover.replace(/'/g, "\\'") : '';
+
+    const clickAction = hasUrl ? `onclick="window.playSharedMusic('${safeUrl}', '${safeTitle}', '${safeArtist}', '${safeCover}')"` : '';
+    const cursorStyle = hasUrl ? 'cursor:pointer;' : '';
+    const playIconColor = hasUrl ? 'var(--accent-color)' : 'var(--text-secondary)';
+
     const cardHtml = `
-    <div class="music-share-card" style="display:flex;align-items:center;gap:12px;background:var(--primary-bg);border:1px solid rgba(var(--accent-color-rgb),0.2);border-radius:12px;padding:10px 14px;width:220px;text-align:left;box-shadow:0 2px 10px rgba(0,0,0,0.05);margin:0;">
+    <div class="music-share-card" ${clickAction} style="display:flex;align-items:center;gap:12px;background:var(--primary-bg);border:1px solid rgba(var(--accent-color-rgb),0.2);border-radius:12px;padding:10px 14px;width:220px;text-align:left;box-shadow:0 2px 10px rgba(0,0,0,0.05);margin:0; ${cursorStyle}">
         <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg, var(--accent-color), rgba(var(--accent-color-rgb),0.6));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(var(--accent-color-rgb),0.3);">
-            <i class="fas fa-music" style="font-size:15px;"></i>
+            ${coverHtml}
         </div>
         <div style="flex:1;overflow:hidden;">
             <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin-bottom:3px;">${title}</div>
             <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;">${artist}</div>
         </div>
-        <div style="color:var(--accent-color);font-size:22px;opacity:0.8;"><i class="far fa-play-circle"></i></div>
+        <div style="color:${playIconColor};font-size:22px;opacity:0.8;">
+            <i class="far fa-play-circle"></i>
+        </div>
     </div>
-    <!-- 下面这个隐形的黑魔法图片，会自动把外层的奶茶色气泡变透明！ -->
+    <!-- 隐形的黑魔法：自动熔化外部自带气泡 -->
     <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="var p=this.closest('.message');if(p){p.style.background='transparent';p.style.boxShadow='none';p.style.padding='0';p.style.border='none';}" style="display:none;">`;
     
     // 插入消息
@@ -31633,8 +31709,8 @@ window.sendMusicCard = function(title, artist) {
     setTimeout(() => { if(typeof simulateReply === 'function') simulateReply(); }, 1500 + Math.random() * 2000);
 };
 
-// 2. 打开“粘贴提取”弹窗的函数
-window.openMusicShareModal = function() {
+// 3. 打开分享面板
+window.openMusicShareModal = async function() {
     let modal = document.getElementById('dynamic-music-share-modal');
     if (!modal) {
         modal = document.createElement('div');
@@ -31644,16 +31720,34 @@ window.openMusicShareModal = function() {
         modal.innerHTML = `
         <div class="modal-content">
             <div class="modal-title">
-                <i class="fas fa-music"></i><span>分享音乐到聊天</span>
+                <i class="fas fa-music"></i><span>分享音乐</span>
             </div>
-            <div style="margin-bottom:12px;font-size:12px;color:var(--text-secondary);">
-                粘贴网易云/QQ音乐分享文案可自动提取，或直接手动填写。
+            
+            <!-- 下拉框：选择已有的歌单音乐 -->
+            <div style="margin-bottom:12px;">
+                <label style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;display:block;">从已有歌单快速选择：</label>
+                <select id="music-share-selector" class="modal-input" style="padding:8px;font-size:12px;width:100%;margin-bottom:0;">
+                    <option value="">-- 点击选择歌单中的音乐 --</option>
+                </select>
             </div>
-            <textarea id="music-share-input" class="modal-textarea" rows="3" placeholder="例如粘贴：分享某某的单曲《歌曲名》..." style="margin-bottom:10px;"></textarea>
-            <div style="display:flex;gap:8px;margin-bottom:15px;">
+
+            <div style="border-top:1px dashed var(--border-color); margin:12px 0;"></div>
+
+            <!-- 网易云API提取 -->
+            <div style="margin-bottom:8px;font-size:11px;color:var(--text-secondary);">
+                或粘贴网易云分享链接 (支持黑科技提取封面和播放链接)
+            </div>
+            <textarea id="music-share-input" class="modal-textarea" rows="2" placeholder="粘贴网易云/QQ音乐分享链接..." style="margin-bottom:10px;"></textarea>
+            
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
                 <input type="text" id="music-share-title" class="modal-input" placeholder="歌曲名" style="flex:1;margin-bottom:0;">
                 <input type="text" id="music-share-artist" class="modal-input" placeholder="歌手名" style="flex:1;margin-bottom:0;">
             </div>
+            <div style="display:flex;gap:8px;margin-bottom:15px;">
+                <input type="text" id="music-share-url" class="modal-input" placeholder="播放链接 (可选)" style="flex:2;margin-bottom:0;">
+                <input type="text" id="music-share-cover" class="modal-input" placeholder="封面链接 (可选)" style="flex:1;margin-bottom:0;">
+            </div>
+
             <div class="modal-buttons">
                 <button class="modal-btn modal-btn-secondary" id="music-share-cancel-btn">取消</button>
                 <button class="modal-btn modal-btn-primary" id="music-share-confirm-btn">发送卡片</button>
@@ -31664,13 +31758,34 @@ window.openMusicShareModal = function() {
         const inputArea = modal.querySelector('#music-share-input');
         const titleInput = modal.querySelector('#music-share-title');
         const artistInput = modal.querySelector('#music-share-artist');
+        const urlInput = modal.querySelector('#music-share-url');
+        const coverInput = modal.querySelector('#music-share-cover');
+        const selector = modal.querySelector('#music-share-selector');
         
-        // 自动提取正则逻辑
-        inputArea.addEventListener('input', () => {
+        // 监听歌单选择
+        selector.addEventListener('change', async (e) => {
+            const idx = e.target.value;
+            if (idx !== '') {
+                try {
+                    const saved = await localforage.getItem(APP_PREFIX + 'customSongs');
+                    if(saved && saved[idx]) {
+                        titleInput.value = saved[idx].title || '';
+                        artistInput.value = saved[idx].sub || '';
+                        urlInput.value = saved[idx].url || '';
+                        coverInput.value = ''; // 歌单里没有存封面就不显示
+                    }
+                } catch(err){}
+            }
+        });
+
+        // 监听文案输入 -> 触发 API 提取黑科技
+        inputArea.addEventListener('input', async () => {
             const text = inputArea.value;
+            if(!text) return;
+            
+            // 先尝试提取基础文字
             const wyMatch = text.match(/分享(.*?)的单曲《(.*?)》/);
             const qqMatch = text.match(/(.*?)《(.*?)》/);
-            
             if (wyMatch) {
                 artistInput.value = wyMatch[1].trim();
                 titleInput.value = wyMatch[2].trim();
@@ -31678,43 +31793,85 @@ window.openMusicShareModal = function() {
                 artistInput.value = qqMatch[1].trim();
                 titleInput.value = qqMatch[2].trim();
             }
+
+            // 【高能黑科技】使用公共 API 提取网易云封面与直链
+            const idMatch = text.match(/id=(\d+)/);
+            if (idMatch && text.includes('163.com')) {
+                const songId = idMatch[1];
+                if(typeof showNotification==='function') showNotification('检测到网易云，正在黑科技提取...', 'info', 1500);
+                try {
+                    // 使用稳定的 Meting 公益 API
+                    const res = await fetch(`https://api.injahow.cn/meting/?server=netease&type=song&id=${songId}`);
+                    const data = await res.json();
+                    if(data && data.length > 0) {
+                        const songInfo = data[0];
+                        titleInput.value = songInfo.name || titleInput.value;
+                        artistInput.value = songInfo.artist || artistInput.value;
+                        urlInput.value = songInfo.url || `http://music.163.com/song/media/outer/url?id=${songId}.mp3`;
+                        coverInput.value = songInfo.cover || '';
+                        if(typeof showNotification==='function') showNotification('提取成功！包含封面和可播放链接', 'success', 2000);
+                    }
+                } catch(err) {
+                    console.warn('API提取失败, 降级使用基础直链', err);
+                    urlInput.value = `http://music.163.com/song/media/outer/url?id=${songId}.mp3`;
+                }
+            }
         });
         
         // 确认发送
         modal.querySelector('#music-share-confirm-btn').addEventListener('click', () => {
             const title = titleInput.value.trim() || '未知歌曲';
             const artist = artistInput.value.trim() || '未知歌手';
-            sendMusicCard(title, artist);
+            const url = urlInput.value.trim();
+            const cover = coverInput.value.trim();
             
-            // 使用自带的完美关闭函数，连带背景遮罩一起消掉
+            sendMusicCard(title, artist, url, cover);
+            
             if(typeof hideModal === 'function') hideModal(modal);
-            
-            // 延迟清空，防止闪烁
             setTimeout(() => {
                 inputArea.value = '';
                 titleInput.value = '';
                 artistInput.value = '';
+                urlInput.value = '';
+                coverInput.value = '';
+                selector.value = '';
             }, 300);
         });
 
-        // 点击取消按钮
+        // 取消
         modal.querySelector('#music-share-cancel-btn').addEventListener('click', () => {
             if(typeof hideModal === 'function') hideModal(modal);
         });
     }
+
+    // 每次打开弹窗前，动态加载当前的歌单进入下拉列表
+    try {
+        const selector = modal.querySelector('#music-share-selector');
+        if (selector) {
+            const saved = await localforage.getItem(APP_PREFIX + 'customSongs');
+            selector.innerHTML = '<option value="">-- 点击选择歌单中的音乐 --</option>';
+            if (saved && Array.isArray(saved)) {
+                saved.forEach((song, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = idx;
+                    opt.textContent = `${song.title} - ${song.sub}`;
+                    selector.appendChild(opt);
+                });
+            }
+        }
+    } catch(e) {}
     
-    // 使用自带的完美显示函数，会自动生成半透明背景遮罩
     if(typeof showModal === 'function') showModal(modal);
 };
 
-// 3. 拦截自带音乐播放器，植入分享小按钮
+// 4. 拦截自带音乐播放器，植入分享小按钮 (带封面同步)
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         const trackInfo = document.querySelector('.track-info');
         if (trackInfo && !document.getElementById('player-share-btn')) {
             const shareBtn = document.createElement('button');
             shareBtn.id = 'player-share-btn';
-            shareBtn.title = "把这首歌发给梦角";
+            shareBtn.title = "发给梦角";
             shareBtn.innerHTML = '<i class="fas fa-share-square"></i>';
             shareBtn.style.cssText = 'background:none;border:none;color:var(--text-secondary);cursor:pointer;margin-left:auto;padding:5px 10px;font-size:16px;transition:0.2s;';
             shareBtn.onmouseover = () => shareBtn.style.color = 'var(--accent-color)';
@@ -31723,7 +31880,17 @@ document.addEventListener('DOMContentLoaded', () => {
             shareBtn.onclick = () => {
                 const title = document.getElementById('music-title').innerText || '未知歌曲';
                 const sub = document.getElementById('music-subtitle').innerText || '未知歌手';
-                sendMusicCard(title, sub);
+                const audio = document.getElementById('audio');
+                const url = audio ? audio.src : '';
+                
+                // 从黑胶唱片抓取封面
+                let cover = '';
+                const vinyl = document.getElementById('vinyl-record-visual');
+                if(vinyl && vinyl.style.backgroundImage && vinyl.style.backgroundImage.includes('url')) {
+                    cover = vinyl.style.backgroundImage.slice(5, -2).replace(/"/g, ""); 
+                }
+
+                sendMusicCard(title, sub, url, cover);
                 if (typeof showNotification === 'function') showNotification('已分享音乐到聊天', 'success');
             };
             
@@ -31731,7 +31898,7 @@ document.addEventListener('DOMContentLoaded', () => {
             trackInfo.style.alignItems = 'center';
             trackInfo.appendChild(shareBtn);
         }
-    }, 2500); // 延迟等待播放器初始化完成
+    }, 2500); 
 });
 </script>
     <script>
