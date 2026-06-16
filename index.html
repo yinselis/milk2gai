@@ -16591,14 +16591,8 @@ const shouldSendMusic = settings.partnerMusicEnabled && window._currentAppMusicS
 
                     // ====== 新增：5% 概率触发刮刮乐彩蛋 ======
                     if (finalText && Math.random() < 0.05) {
-                        // 将正常文字用刮刮乐的 HTML 结构包裹
-                        finalText = `
-                        <div class="scratch-card" onclick="this.classList.add('revealed')">
-                            <div class="scratch-cover">
-                                <i class="fas fa-magic"></i> <span>刮开看看</span>
-                            </div>
-                            <div class="scratch-text">${finalText}</div>
-                        </div>`;
+                        // 将正常文字用刮刮乐包裹，去掉多余换行符防止撑开高度，并注入兼容旧浏览器的去气泡脚本
+                        finalText = `<div class="scratch-card" onclick="this.classList.add('revealed')"><div class="scratch-cover"><i class="fas fa-magic"></i> <span>刮开看看</span></div><div class="scratch-text">${finalText}</div></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="setTimeout(()=>{var p=this.closest('.message');if(p){p.style.setProperty('background', 'transparent', 'important');p.style.setProperty('box-shadow', 'none', 'important');p.style.setProperty('padding', '0', 'important');p.style.setProperty('border', 'none', 'important');}}, 10);" style="display:none;">`;
                     }
                     // ========================================
 
