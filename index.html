@@ -31604,7 +31604,7 @@ window.exitCollapseMode = function() {
 // 1. 发送音乐卡片的核心函数（自带漂亮 CSS）
 window.sendMusicCard = function(title, artist) {
     const cardHtml = `
-    <div class="music-share-card" style="display:flex;align-items:center;gap:12px;background:var(--primary-bg);border:1px solid rgba(var(--accent-color-rgb),0.2);border-radius:12px;padding:10px 14px;width:220px;text-align:left;box-shadow:0 2px 10px rgba(0,0,0,0.05);margin:4px 0;">
+    <div class="music-share-card" style="display:flex;align-items:center;gap:12px;background:var(--primary-bg);border:1px solid rgba(var(--accent-color-rgb),0.2);border-radius:12px;padding:10px 14px;width:220px;text-align:left;box-shadow:0 2px 10px rgba(0,0,0,0.05);margin:0;">
         <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg, var(--accent-color), rgba(var(--accent-color-rgb),0.6));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(var(--accent-color-rgb),0.3);">
             <i class="fas fa-music" style="font-size:15px;"></i>
         </div>
@@ -31613,7 +31613,9 @@ window.sendMusicCard = function(title, artist) {
             <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;">${artist}</div>
         </div>
         <div style="color:var(--accent-color);font-size:22px;opacity:0.8;"><i class="far fa-play-circle"></i></div>
-    </div>`;
+    </div>
+    <!-- 下面这个隐形的黑魔法图片，会自动把外层的奶茶色气泡变透明！ -->
+    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="var p=this.closest('.message');if(p){p.style.background='transparent';p.style.boxShadow='none';p.style.padding='0';p.style.border='none';}" style="display:none;">`;
     
     // 插入消息
     addMessage({
@@ -31653,7 +31655,7 @@ window.openMusicShareModal = function() {
                 <input type="text" id="music-share-artist" class="modal-input" placeholder="歌手名" style="flex:1;margin-bottom:0;">
             </div>
             <div class="modal-buttons">
-                <button class="modal-btn modal-btn-secondary" onclick="this.closest('.modal').style.display='none'">取消</button>
+                <button class="modal-btn modal-btn-secondary" id="music-share-cancel-btn">取消</button>
                 <button class="modal-btn modal-btn-primary" id="music-share-confirm-btn">发送卡片</button>
             </div>
         </div>`;
@@ -31666,9 +31668,7 @@ window.openMusicShareModal = function() {
         // 自动提取正则逻辑
         inputArea.addEventListener('input', () => {
             const text = inputArea.value;
-            // 识别网易云: 分享[歌手]的单曲《[歌名]》
             const wyMatch = text.match(/分享(.*?)的单曲《(.*?)》/);
-            // 识别QQ音乐: [歌手]《[歌名]》
             const qqMatch = text.match(/(.*?)《(.*?)》/);
             
             if (wyMatch) {
@@ -31685,14 +31685,26 @@ window.openMusicShareModal = function() {
             const title = titleInput.value.trim() || '未知歌曲';
             const artist = artistInput.value.trim() || '未知歌手';
             sendMusicCard(title, artist);
-            modal.style.display = 'none';
-            // 清空框
-            inputArea.value = '';
-            titleInput.value = '';
-            artistInput.value = '';
+            
+            // 使用自带的完美关闭函数，连带背景遮罩一起消掉
+            if(typeof hideModal === 'function') hideModal(modal);
+            
+            // 延迟清空，防止闪烁
+            setTimeout(() => {
+                inputArea.value = '';
+                titleInput.value = '';
+                artistInput.value = '';
+            }, 300);
+        });
+
+        // 点击取消按钮
+        modal.querySelector('#music-share-cancel-btn').addEventListener('click', () => {
+            if(typeof hideModal === 'function') hideModal(modal);
         });
     }
-    modal.style.display = 'flex';
+    
+    // 使用自带的完美显示函数，会自动生成半透明背景遮罩
+    if(typeof showModal === 'function') showModal(modal);
 };
 
 // 3. 拦截自带音乐播放器，植入分享小按钮
