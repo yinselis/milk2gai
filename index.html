@@ -31678,10 +31678,10 @@ window.sendMusicCard = function(title, artist, url, cover) {
         const style = document.createElement('style');
         style.id = 'music-card-global-style';
         style.innerHTML = `
-            .message:has(.music-share-card) { background: transparent !important; box-shadow: none !important; padding: 0 !important; border: none !important; }
-            .message-wrapper:has(.music-share-card) { margin-bottom: 2px !important; }
-            .message-wrapper:has(.music-share-card) .message-meta { margin-top: 4px !important; }
-        `;
+    .message:has(.music-share-card) { background: transparent !important; box-shadow: none !important; padding: 0 !important; border: none !important; line-height: 0 !important; }
+    .message-wrapper:has(.music-share-card) { margin-bottom: 2px !important; }
+    .message-wrapper:has(.music-share-card) .message-meta { margin-top: 0px !important; }
+`;
         document.head.appendChild(style);
     }
 
@@ -31702,7 +31702,7 @@ window.sendMusicCard = function(title, artist, url, cover) {
 
     // 恢复旧版尺寸：宽 240px，行距拉开
     const cardHtml = `
-    <div class="music-share-card" data-url="${safeUrl}" ${clickAction} style="display:flex;align-items:center;gap:14px;background:var(--secondary-bg);border:1px solid rgba(var(--accent-color-rgb),0.15);border-radius:14px;padding:14px 16px;width:240px;text-align:left;box-shadow:0 4px 12px rgba(0,0,0,0.05);margin:0; ${cursorStyle}">
+    <div class="music-share-card" data-url="${safeUrl}" ${clickAction} style="display:flex;align-items:center;gap:14px;background:var(--secondary-bg);border:1px solid rgba(var(--accent-color-rgb),0.15);border-radius:14px;padding:8px 16px;width:240px;text-align:left;box-shadow:0 4px 12px rgba(0,0,0,0.05);margin:0; ${cursorStyle}">
         <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, var(--accent-color), rgba(var(--accent-color-rgb),0.6));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 2px 8px rgba(var(--accent-color-rgb),0.3);">
             ${coverHtml}
         </div>
