@@ -10878,6 +10878,88 @@
     box-shadow: none !important;
     background: transparent !important;
 }
+
+/* 优化音乐卡片内部间距，防止歌名被挤成省略号 */
+.music-share-card {
+    padding: 12px 10px !important; /* 缩小左右内边距 */
+    width: 215px !important;       /* 稍微收缩总宽度 */
+    gap: 10px !important;          /* 缩小封面和文字的距离 */
+    margin: 0 !important;
+}
+
+/* ==========================================
+   刮刮乐彩蛋专用样式
+   ========================================== */
+.scratch-card {
+    position: relative;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    min-width: 140px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 14px;
+    background: rgba(var(--accent-color-rgb), 0.04);
+    border: 1px dashed rgba(var(--accent-color-rgb), 0.4);
+    transition: all 0.3s;
+    margin: 2px 0;
+}
+
+.scratch-cover {
+    position: absolute;
+    inset: 0;
+    /* 银色带点主题色的刮刮乐涂层效果 */
+    background: repeating-linear-gradient(
+        45deg, 
+        rgba(var(--accent-color-rgb),0.25), 
+        rgba(var(--accent-color-rgb),0.25) 10px, 
+        rgba(var(--accent-color-rgb),0.15) 10px, 
+        rgba(var(--accent-color-rgb),0.15) 20px
+    );
+    backdrop-filter: blur(8px) saturate(0.8);
+    -webkit-backdrop-filter: blur(8px) saturate(0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--accent-color);
+    font-weight: 600;
+    letter-spacing: 1px;
+    transition: opacity 0.5s ease, transform 0.5s ease, filter 0.5s ease;
+    z-index: 2;
+}
+
+.scratch-text {
+    opacity: 0;
+    filter: blur(6px);
+    transition: opacity 0.5s ease 0.1s, filter 0.5s ease 0.1s;
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+/* 刮开后的状态 */
+.scratch-card.revealed .scratch-cover {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(1.1);
+    filter: blur(4px);
+}
+
+.scratch-card.revealed .scratch-text {
+    opacity: 1;
+    filter: blur(0);
+}
+
+.scratch-card:not(.revealed):hover {
+    box-shadow: 0 4px 12px rgba(var(--accent-color-rgb), 0.15);
+    border-style: solid;
+}
 </style>
 
     <style id="css-live-preview-style"></style>
@@ -12040,6 +12122,11 @@
                             <span class="setting-pill-label">表情混入消息 <span style="font-size:11px;color:var(--text-secondary);font-weight:400;">开启后表情与文字同条发送</span></span>
                             <div class="setting-pill-switch"><div class="setting-pill-knob"></div></div>
                         </div>
+                        <div class="setting-pill-row" id="partner-music-toggle">
+    <span class="setting-pill-icon"><i class="fas fa-music"></i></span>
+    <span class="setting-pill-label">分享音乐 <span style="font-size:11px;color:var(--text-secondary);font-weight:400;">开启后有概率分享音乐</span></span>
+    <div class="setting-pill-switch"><div class="setting-pill-knob"></div></div>
+</div>
                     </div>
 
                     <p class="cs-group-label" style="margin-top:4px;">通话功能</p>
@@ -14927,8 +15014,9 @@ autoSendInterval: 5,
         partnerPokeCustomSoundUrl: '',
         soundVolume: 0.15,
         bottomCollapseMode: false,
-        emojiMixEnabled: true
-            };
+emojiMixEnabled: true,
+partnerMusicEnabled: false
+    };
         }
 
 
@@ -15174,15 +15262,18 @@ try {
         
         displayedMessageCount = HISTORY_BATCH_SIZE;
         
-        setTimeout(() => {
-            applyAllAvatarFrames();
-            manageAutoSendTimer(); 
-            checkEnvelopeStatus(); 
-            updateUI();
-            if (settings.customBubbleCss) {
-                try { applyCustomBubbleCss(settings.customBubbleCss); } catch(e) {}
-            }
-        }, 100);
+setTimeout(() => {
+    applyAllAvatarFrames();
+    manageAutoSendTimer(); 
+    checkEnvelopeStatus(); 
+    updateUI();
+    if (settings.customBubbleCss) {
+        try { applyCustomBubbleCss(settings.customBubbleCss); } catch(e) {}
+    }
+
+
+
+}, 100);
 
     } catch (e) {
         console.error("LoadData 内部致命错误:", e);
@@ -15616,8 +15707,10 @@ function manageAutoSendTimer() {
                 '#typing-indicator-toggle': 'typingIndicatorEnabled',
                 '#read-no-reply-toggle': 'allowReadNoReply',
                 '#emoji-mix-toggle': 'emojiMixEnabled',
-                '#auto-send-toggle': 'autoSendEnabled'
-            };
+                '#partner-music-toggle': 'partnerMusicEnabled',
+                '#auto-send-toggle': 'autoSendEnabled',
+    '#partner-music-toggle': 'partnerMusicEnabled'
+};
             for (const [sel, prop] of Object.entries(_pillSyncMap)) {
                 const el = document.querySelector(sel);
                 if (el) {
@@ -15944,8 +16037,24 @@ function renderMessages(preserveScroll = false) {
         const newScrollHeight = container.scrollHeight;
         container.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
     } else {
+        const forceScrollToBottom = () => {
+            if (container) container.scrollTop = container.scrollHeight;
+        };
+        
         requestAnimationFrame(() => {
-            container.scrollTop = container.scrollHeight;
+            forceScrollToBottom();
+            // 在进入期间分阶段多次强制置底，以抵抗开屏动画隐藏、键盘弹起、或者布局跳动引起的高度变化
+            setTimeout(forceScrollToBottom, 100);
+            setTimeout(forceScrollToBottom, 500);
+            setTimeout(forceScrollToBottom, 1200);
+            setTimeout(forceScrollToBottom, 2500);
+            setTimeout(forceScrollToBottom, 4500);
+        });
+
+        // 监听新插入图片的加载事件，图片加载完撑开高度后立刻置底
+        const images = container.querySelectorAll('img');
+        images.forEach(img => {
+            img.addEventListener('load', forceScrollToBottom);
         });
     }
 }
@@ -16445,7 +16554,9 @@ if (partnerPersonas && partnerPersonas.length > 0 && Math.random() < 0.3) {
                         if (raw) disabledStickerItems = new Set(JSON.parse(raw));
                     } catch (e) {}
                     const enabledStickerPool = (stickerLibrary || []).filter(s => !disabledStickerItems.has(s));
-                    const shouldSendSticker = enabledStickerPool.length > 0 && Math.random() < 0.2;
+const shouldSendSticker = enabledStickerPool.length > 0 && Math.random() < 0.2;
+const shouldSendMusic = settings.partnerMusicEnabled && window._currentAppMusicSongs && window._currentAppMusicSongs.length > 0 && Math.random() < 0.2;
+
 
                     let finalText = replyText;
                     let separateEmoji = null;
@@ -16460,16 +16571,36 @@ if (partnerPersonas && partnerPersonas.length > 0 && Math.random() < 0.3) {
                         }
                     }
 
+                    // ====== 新增：5% 概率触发刮刮乐彩蛋 ======
+                    if (finalText && Math.random() < 0.05) {
+                        // 将正常文字用刮刮乐的 HTML 结构包裹
+                        finalText = `
+                        <div class="scratch-card" onclick="this.classList.add('revealed')">
+                            <div class="scratch-cover">
+                                <i class="fas fa-magic"></i> <span>刮开看看</span>
+                            </div>
+                            <div class="scratch-text">${finalText}</div>
+                        </div>`;
+                    }
+                    // ========================================
+
                     addMessage({
                         id: Date.now() + i,
                         sender: settings.partnerName || '对方',
                         text: finalText,
+
                         timestamp: new Date(),
                         status: 'received',
                         favorited: false,
                         note: null,
                         replyTo: (i === 0 && recentUserMsgs.length > 0 && Math.random() < 0.3)
-                            ? (function(){ const m = recentUserMsgs[Math.floor(Math.random() * recentUserMsgs.length)]; return { id: m.id, text: m.text, sender: m.sender }; })()
+                            ? (function(){ const m = recentUserMsgs[Math.floor(Math.random() * recentUserMsgs.length)]; let replyText = m.text;
+if (replyText && replyText.includes('music-share-card')) {
+    const titleMatch = replyText.match(/line-height:1\.2;">(.*?)<\/div>/);
+    const songName = titleMatch ? titleMatch[1] : '音乐';
+    replyText = `[分享音乐] ${songName}`;
+}
+return { id: m.id, text: replyText, sender: m.sender }; })()
                             : null,
                         type: 'normal'
                     });
@@ -16498,6 +16629,49 @@ if (partnerPersonas && partnerPersonas.length > 0 && Math.random() < 0.3) {
                             }
                         }, 400 + Math.random() * 600);
                     }
+
+if (shouldSendMusic) {
+    const randomSong = window._currentAppMusicSongs[Math.floor(Math.random() * window._currentAppMusicSongs.length)];
+    const hasUrl = !!randomSong.url;
+    const coverHtml = randomSong.cover ? `<img src="${randomSong.cover}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : `<i class="fas fa-music" style="font-size:18px;"></i>`;
+    const clickAction = hasUrl ? `onclick="window.toggleInlineMusic(this)"` : '';
+    const cursorStyle = hasUrl ? 'cursor:pointer;' : '';
+    const playIconColor = hasUrl ? 'var(--accent-color)' : 'var(--text-secondary)';
+    const sTitle = (randomSong.title||'未知歌曲').replace(/'/g, "\\'");
+    const sArtist = (randomSong.sub||'未知歌手').replace(/'/g, "\\'");
+    const cardHtml = `
+    <div class="music-share-card" data-url="${hasUrl ? randomSong.url.replace(/'/g, "\\'") : ''}" ${clickAction} style="display:flex;align-items:center;gap:14px;background:var(--secondary-bg);border:1px solid rgba(var(--accent-color-rgb),0.15);border-radius:14px;padding:12px 16px;width:240px;text-align:left;box-shadow:0 4px 12px rgba(0,0,0,0.05);margin:0; ${cursorStyle}">
+        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, var(--accent-color), rgba(var(--accent-color-rgb),0.6));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 2px 8px rgba(var(--accent-color-rgb),0.3);">
+            ${coverHtml}
+        </div>
+        <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:4px;">
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;line-height:1.2;">${sTitle}</div>
+            <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;line-height:1.2;">${sArtist}</div>
+        </div>
+        <div class="music-play-btn" style="color:${playIconColor};font-size:24px;opacity:0.8;flex-shrink:0;">
+            <i class="far fa-play-circle"></i>
+        </div>
+    </div>
+    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="setTimeout(()=>{var p=this.closest('.message');if(p){p.style.setProperty('background', 'transparent', 'important');p.style.setProperty('box-shadow', 'none', 'important');p.style.setProperty('padding', '0', 'important');p.style.setProperty('border', 'none', 'important');}}, 10);" style="display:none;">`;
+
+    // 像表情包一样延迟发送
+    setTimeout(() => {
+        addMessage({
+            id: Date.now() + i + 3000,
+            sender: settings.partnerName || '对方',
+            text: cardHtml,
+            timestamp: new Date(),
+            status: 'received',
+            favorited: false,
+            note: null,
+            type: 'normal'
+        });
+        playSound('message');
+        if (typeof window._sendPartnerNotification === 'function') {
+            window._sendPartnerNotification(settings.partnerName || '对方', '[分享音乐]');
+        }
+    }, 800 + Math.random() * 600);
+}
 
                     if (separateEmoji) {
                         setTimeout(() => {
@@ -17063,11 +17237,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const historyLoader = document.getElementById('history-loader');
     
     if (chatArea && historyLoader && typeof IntersectionObserver !== 'undefined') {
-        const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && messages.length > displayedMessageCount) {
-                loadMoreHistory();
-            }
-        }, {
+    // ====== 保护期补丁：开屏动画期间禁止加载老记录 ======
+    let isAppReady = false;
+    setTimeout(() => { isAppReady = true; }, 4000); // 4秒后（动画结束）才允许触发加载历史记录
+
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && isAppReady && messages.length > displayedMessageCount) {
+            loadMoreHistory();
+        }
+    }, {
             root: chatArea,
             rootMargin: '200px 0px 0px 0px',
             threshold: 0.01
@@ -28508,11 +28686,17 @@ if (target.classList.contains('delete-btn')) {
     return;
 }
                 if (target.classList.contains('reply-btn')) {
-                    currentReplyTo = {
-                        id: message.id,
-                        sender: message.sender,
-                        text: message.text
-                    };
+    let replyText = message.text;
+    if (replyText.includes('music-share-card')) {
+        const titleMatch = replyText.match(/line-height:1\.2;">(.*?)<\/div>/);
+        const songName = titleMatch ? titleMatch[1] : '音乐';
+        replyText = `[分享音乐] ${songName}`;
+    }
+    currentReplyTo = {
+        id: message.id,
+        sender: message.sender,
+        text: replyText
+    };
                     updateReplyPreview();
                     DOMElements.messageInput.focus();
                     const targetMessageElement = DOMElements.chatContainer.querySelector(`[data-id="${message.id}"]`);
@@ -28851,8 +29035,9 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
         '#read-receipts-toggle': { prop: 'readReceiptsEnabled', name: '已读回执' },
         '#typing-indicator-toggle': { prop: 'typingIndicatorEnabled', name: '正在输入' },
         '#read-no-reply-toggle': { prop: 'allowReadNoReply', name: '已读不回' },
-        '#emoji-mix-toggle': { prop: 'emojiMixEnabled', name: '表情消息' }
-    };
+        '#emoji-mix-toggle': { prop: 'emojiMixEnabled', name: '表情消息' },
+    '#partner-music-toggle': { prop: 'partnerMusicEnabled', name: '分享音乐' }
+};
     for (const [selector, { prop }] of Object.entries(toggleSyncMap)) {
         const el = document.querySelector(selector);
         const val = prop === 'emojiMixEnabled' ? (settings[prop] !== false) : !!settings[prop];
@@ -29477,9 +29662,9 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
                 '#typing-indicator-toggle': {
                     prop: 'typingIndicatorEnabled', name: '正在输入'},
                     '#read-no-reply-toggle': { prop: 'allowReadNoReply', name: '已读不回' },
-                    '#emoji-mix-toggle': { prop: 'emojiMixEnabled', name: '表情混入消息' }
+                    '#emoji-mix-toggle': { prop: 'emojiMixEnabled', name: '表情混入消息' },
+                    '#partner-music-toggle': { prop: 'partnerMusicEnabled', name: '分享音乐' }
 };
-
             for (const [selector, {
                 prop, name
             }] of Object.entries(settingToggles)) {
@@ -30913,6 +31098,8 @@ window._currentAppMusicSongs = songs;
         header.innerHTML = `
     <div class="pl-header-title">˙°ʚᕱ⑅ᕱɞ°˙</div>
     <div class="pl-header-actions">
+        <!-- 🔴 新增的清空按钮 -->
+        <button class="pl-icon-btn" id="pl-clear-btn" title="清空歌单"><i class="fas fa-trash-alt"></i></button>
         <button class="pl-icon-btn" id="pl-manage-btn" title="歌单管理"><i class="fas fa-folder-open"></i></button>
         <button class="pl-icon-btn ${isSearchVisible ? 'active' : ''}" id="pl-search-toggle" title="搜索"><i class="fas fa-search"></i></button>
         <button class="pl-icon-btn" id="pl-add-btn" title="添加歌曲"><i class="fas fa-plus"></i></button>
@@ -30943,11 +31130,43 @@ window._currentAppMusicSongs = songs;
 
         renderListContent(contentDiv);
 
+        // 🔴 一键清空功能绑定
+header.querySelector('#pl-clear-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (songs.length === 0) {
+        if (typeof showNotification === 'function') showNotification('歌单已经是空的了', 'info');
+        return;
+    }
+    if (confirm('确定要一键清空歌单中的所有歌曲吗？（清空后不可恢复）')) {
+        songs = [];
+        savePlaylist();
+        currentIndex = 0;
+        
+        // 停止当前播放的音乐
+        const audio = document.getElementById('audio');
+        if (audio) {
+            audio.pause();
+            audio.src = '';
+        }
+        isPlaying = false;
+        document.getElementById('icon-play').style.display = 'block';
+        document.getElementById('icon-pause').style.display = 'none';
+        document.getElementById('music-title').innerText = '未播放';
+        document.getElementById('music-subtitle').innerText = '请添加歌曲';
+        
+        // 刷新列表视图
+        renderListContent(contentDiv);
+        if (typeof showNotification === 'function') showNotification('歌单已清空', 'success');
+    }
+});
+
+        // 🔴 找回丢失的“加号”添加歌曲按钮功能
         header.querySelector('#pl-add-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             openAddModal();
-            newSongTitle.focus();
+            if (newSongTitle) setTimeout(() => newSongTitle.focus(), 100);
         });
+
         header.querySelector('#pl-manage-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             
@@ -30956,6 +31175,11 @@ window._currentAppMusicSongs = songs;
             overlay.innerHTML = `
                 <div style="background:var(--secondary-bg);border-radius:16px;padding:20px;width:280px;box-shadow:0 10px 40px rgba(0,0,0,0.3);border:1px solid var(--border-color);display:flex;flex-direction:column;gap:12px;">
                     <div style="text-align:center;font-weight:600;margin-bottom:5px;">歌单管理</div>
+                    
+                    <button id="_pl_opt_netease" style="padding:12px;border-radius:10px;border:1px solid var(--border-color);background:rgba(var(--accent-color-rgb),0.05);color:var(--accent-color);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:14px;transition:0.2s;">
+                        <div style="width:32px;height:32px;background:rgba(var(--accent-color-rgb),0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-cloud-download-alt"></i></div>
+                        拉取网易云歌单
+                    </button>
                     
                     <button id="_pl_opt_import" style="padding:12px;border-radius:10px;border:1px solid var(--border-color);background:var(--primary-bg);color:var(--text-primary);cursor:pointer;display:flex;align-items:center;gap:10px;font-size:14px;transition:0.2s;">
                         <div style="width:32px;height:32px;background:rgba(var(--accent-color-rgb),0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--accent-color);"><i class="fas fa-file-import"></i></div>
@@ -30979,7 +31203,126 @@ window._currentAppMusicSongs = songs;
             const plOptImportBtn = document.getElementById('_pl_opt_import');
             if (plOptCancelBtn) plOptCancelBtn.onclick = closeOpt;
 
-            if (plOptExportBtn) plOptExportBtn.onclick = () => {
+const plOptNeteaseBtn = document.getElementById('_pl_opt_netease');
+if (plOptNeteaseBtn) plOptNeteaseBtn.onclick = async () => {
+    closeOpt();
+    // 使用美化弹窗代替 prompt 获取输入
+    const inputOverlay = document.createElement('div');
+    inputOverlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;';
+    inputOverlay.innerHTML = `
+        <div style="background:var(--secondary-bg);border-radius:20px;padding:24px;width:88%;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.4);animation:modalContentSlideIn 0.3s ease forwards;">
+            <div style="text-align:center;margin-bottom:16px;">
+                <div style="width:52px;height:52px;border-radius:50%;background:rgba(var(--accent-color-rgb),0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+                    <i class="fas fa-cloud-download-alt" style="color:var(--accent-color);font-size:22px;"></i>
+                </div>
+                <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">拉取网易云歌单</div>
+                <div style="font-size:12px;color:var(--text-secondary);">请粘贴歌单分享链接或 ID</div>
+            </div>
+            <input type="text" id="_netease_input" placeholder="例如：https://y.music.163.com/m/playlist?id=..." style="width:100%;padding:12px;border:1px solid var(--border-color);border-radius:12px;background:var(--primary-bg);color:var(--text-primary);font-size:13px;outline:none;margin-bottom:16px;box-sizing:border-box;">
+            <div style="display:flex;gap:12px;">
+                <button id="_btn_cancel_netease" style="flex:1;padding:12px;border:1px solid var(--border-color);border-radius:12px;background:var(--primary-bg);color:var(--text-secondary);font-size:14px;font-weight:600;cursor:pointer;">取消</button>
+                <button id="_btn_confirm_netease" style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--accent-color);color:#fff;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(var(--accent-color-rgb),0.3);">开始拉取</button>
+            </div>
+        </div>`;
+    document.body.appendChild(inputOverlay);
+    const inputEl = inputOverlay.querySelector('#_netease_input');
+    setTimeout(() => inputEl.focus(), 100);
+
+    inputOverlay.querySelector('#_btn_cancel_netease').onclick = () => inputOverlay.remove();
+    inputOverlay.querySelector('#_btn_confirm_netease').onclick = async () => {
+        const inputStr = inputEl.value.trim();
+        inputOverlay.remove();
+        if (!inputStr) return;
+        
+        let playlistId = '';
+        const idMatch = inputStr.match(/id=(\d+)/) || inputStr.match(/playlist\/(\d+)/) || inputStr.match(/^(\d+)$/);
+        if (idMatch) {
+            playlistId = idMatch[1];
+        } else {
+            if(typeof showNotification==='function') showNotification('没检测到歌单ID哦', 'error');
+            return;
+        }
+        
+        if(typeof showNotification==='function') showNotification('正在提取整个歌单，请稍等...', 'info', 2000);
+        
+        const apis = [
+            `https://api.i-meto.com/meting/api?server=netease&type=playlist&id=${playlistId}`,
+            `https://api.injahow.cn/meting/?server=netease&type=playlist&id=${playlistId}`,
+            `https://meting.qjqq.cn/?server=netease&type=playlist&id=${playlistId}`
+        ];
+        
+        let data = null;
+        for (let api of apis) {
+            try {
+                const res = await fetch(api);
+                const temp = await res.json();
+                if (temp && temp.length > 0) { data = temp; break; }
+            } catch(e) {}
+        }
+        
+        try {
+            if (data && data.length > 0) {
+// 兼容不同 API 的奇葩字段名，彻底解决 undefined
+const newSongs = data.map(song => {
+    const s_title = song.name || song.title || '未知歌曲';
+    const s_artist = song.artist || song.author || '未知歌手';
+    const s_id = song.id || song.song_id;
+    
+    // 🔴 核心修复：强制使用第三方解析重定向，绕过官方 30 秒试听限制！
+    let s_url = '';
+    if (s_id) {
+        s_url = `https://api.i-meto.com/meting/api?server=netease&type=url&id=${s_id}`;
+    } else {
+        s_url = song.url || '';
+    }
+
+    return {
+        title: s_title,
+        sub: s_artist,
+        url: s_url,
+        isCustom: true
+    };
+});
+                
+                // 提取成功的美化弹窗
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;';
+                overlay.innerHTML = `
+                    <div style="background:var(--secondary-bg);border-radius:20px;padding:24px;width:88%;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.4);animation:modalContentSlideIn 0.3s ease forwards;text-align:center;">
+                        <div style="width:52px;height:52px;border-radius:50%;background:rgba(var(--accent-color-rgb),0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                            <i class="fas fa-check-circle" style="color:var(--accent-color);font-size:26px;"></i>
+                        </div>
+                        <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">提取成功</div>
+                        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:24px;line-height:1.5;">共找到 <strong>${newSongs.length}</strong> 首歌曲。<br>请选择导入方式：</div>
+                        <div style="display:flex;flex-direction:column;gap:10px;">
+                            <button id="_btn_replace" style="width:100%;padding:12px;border:none;border-radius:12px;background:var(--accent-color);color:#fff;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(var(--accent-color-rgb),0.3);">替换现有歌单</button>
+                            <button id="_btn_append" style="width:100%;padding:12px;border:1px solid var(--accent-color);border-radius:12px;background:rgba(var(--accent-color-rgb),0.05);color:var(--accent-color);font-size:14px;font-weight:600;cursor:pointer;">追加到当前列表末尾</button>
+                            <button id="_btn_cancel_import" style="width:100%;padding:10px;border:none;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;margin-top:4px;">取消</button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(overlay);
+
+                const handleResult = (isReplace) => {
+                    if (isReplace) { songs = newSongs; } else { songs = [...songs, ...newSongs]; }
+                    savePlaylist();
+                    if(typeof showNotification==='function') showNotification(`搞定啦！已导入 ${newSongs.length} 首歌`, 'success');
+                    if (songs.length > 0 && currentIndex >= songs.length) { currentIndex = 0; loadSong(0); }
+                };
+
+                overlay.querySelector('#_btn_replace').onclick = () => { overlay.remove(); handleResult(true); };
+                overlay.querySelector('#_btn_append').onclick = () => { overlay.remove(); handleResult(false); };
+                overlay.querySelector('#_btn_cancel_import').onclick = () => { overlay.remove(); };
+
+            } else {
+                if(typeof showNotification==='function') showNotification('提取失败，可能是私密歌单', 'warning');
+            }
+        } catch(e) {
+            if(typeof showNotification==='function') showNotification('接口拥挤了，稍后再试一下吧', 'error');
+        }
+    };
+};
+
+if (plOptExportBtn) plOptExportBtn.onclick = () => {
                 closeOpt();
                 if (songs.length === 0) {
                     showNotification('歌单为空，无法导出', 'warning');
@@ -31004,36 +31347,60 @@ window._currentAppMusicSongs = songs;
             };
         });
         header.querySelector('#pl-import-input').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+    const file = e.target.files[0];
+    if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    const importedSongs = JSON.parse(ev.target.result);
-                    if (!Array.isArray(importedSongs)) throw new Error('格式错误');
-                    
-                    if (confirm(`检测到 ${importedSongs.length} 首歌曲。\n点击【确定】覆盖当前歌单\n点击【取消】追加到当前歌单末尾`)) {
-                        songs = importedSongs;
-                        showNotification('歌单已覆盖', 'success');
-                    } else {
-                        songs = [...songs, ...importedSongs];
-                        showNotification(`已追加 ${importedSongs.length} 首歌曲`, 'success');
-                    }
-                    
-                    savePlaylist();
-                    if (songs.length > 0 && currentIndex >= songs.length) {
-                        currentIndex = 0;
-                        loadSong(0);
-                    }
-                } catch (err) {
-                    console.error(err);
-                    showNotification('导入失败：文件格式不正确', 'error');
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const importedSongs = JSON.parse(ev.target.result);
+            if (!Array.isArray(importedSongs)) throw new Error('格式错误');
+            
+            // 🔴 导入本地文件的美化弹窗
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;';
+            overlay.innerHTML = `
+                <div style="background:var(--secondary-bg);border-radius:20px;padding:24px;width:88%;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.4);animation:modalContentSlideIn 0.3s ease forwards;text-align:center;">
+                    <div style="width:52px;height:52px;border-radius:50%;background:rgba(var(--accent-color-rgb),0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                        <i class="fas fa-file-import" style="color:var(--accent-color);font-size:26px;"></i>
+                    </div>
+                    <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">读取成功</div>
+                    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:24px;line-height:1.5;">检测到 <strong>${importedSongs.length}</strong> 首歌曲。<br>请选择导入方式：</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                        <button id="_btn_replace_file" style="width:100%;padding:12px;border:none;border-radius:12px;background:var(--accent-color);color:#fff;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(var(--accent-color-rgb),0.3);">覆盖现有歌单</button>
+                        <button id="_btn_append_file" style="width:100%;padding:12px;border:1px solid var(--accent-color);border-radius:12px;background:rgba(var(--accent-color-rgb),0.05);color:var(--accent-color);font-size:14px;font-weight:600;cursor:pointer;">追加到列表末尾</button>
+                        <button id="_btn_cancel_file" style="width:100%;padding:10px;border:none;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;margin-top:4px;">取消</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            
+            const handleResult = (isReplace) => {
+                if (isReplace) {
+                    songs = importedSongs;
+                    if (typeof showNotification === 'function') showNotification('歌单已覆盖', 'success');
+                } else {
+                    songs = [...songs, ...importedSongs];
+                    if (typeof showNotification === 'function') showNotification(`已追加 ${importedSongs.length} 首歌曲`, 'success');
+                }
+                savePlaylist();
+                if (songs.length > 0 && currentIndex >= songs.length) {
+                    currentIndex = 0;
+                    loadSong(0);
                 }
             };
-            reader.readAsText(file);
-            e.target.value = ''; 
-        });
+
+            overlay.querySelector('#_btn_replace_file').onclick = () => { overlay.remove(); handleResult(true); };
+            overlay.querySelector('#_btn_append_file').onclick = () => { overlay.remove(); handleResult(false); };
+            overlay.querySelector('#_btn_cancel_file').onclick = () => { overlay.remove(); };
+
+        } catch (err) {
+            console.error(err);
+            if (typeof showNotification === 'function') showNotification('导入失败：文件格式不正确', 'error');
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; 
+});
         header.querySelector('#pl-search-toggle').addEventListener('click', (e) => {
             e.stopPropagation();
             isSearchVisible = !isSearchVisible;
@@ -31048,10 +31415,10 @@ window._currentAppMusicSongs = songs;
     function renderListContent(container) {
         container.innerHTML = '';
         
-        const filteredSongs = songs.map((s, i) => ({...s, originalIndex: i}))
-                                   .filter(s => s.title.toLowerCase().includes(searchTerm) || 
-                                                s.sub.toLowerCase().includes(searchTerm));
-
+const filteredSongs = songs.map((s, i) => ({...s, originalIndex: i}))
+                           .filter(s => String(s.title || '').toLowerCase().includes(searchTerm) || 
+                                        String(s.sub || '').toLowerCase().includes(searchTerm));
+                                        
         if (filteredSongs.length === 0) {
             container.innerHTML = `<div class="empty-search-result">未找到 "${searchTerm}" 相关歌曲</div>`;
             return;
@@ -31070,8 +31437,8 @@ window._currentAppMusicSongs = songs;
                 return text.replace(regex, '<span class="highlight">$1</span>');
             };
 
-            const displayTitle = highlightText(song.title, searchTerm);
-            const displaySub = highlightText(song.sub, searchTerm);
+            const displayTitle = highlightText(String(song.title || '未知歌曲'), searchTerm);
+const displaySub = highlightText(String(song.sub || '未知歌手'), searchTerm);
 
             div.innerHTML = `
                 <div class="song-info">
@@ -31619,8 +31986,7 @@ window.exitCollapseMode = function() {
 // ==========================================
 // 音乐分享卡片与提取功能 (旧版大尺寸外观 + 独立无缝播放)
 // ==========================================
-
-// 1. 卡片独立播放控制 (不唤出主播放器)
+// 1. 卡片播放控制 (与悬浮播放器完全同步)
 window.toggleInlineMusic = function(btn) {
     const card = btn.closest('.music-share-card');
     const url = card.dataset.url;
@@ -31630,52 +31996,85 @@ window.toggleInlineMusic = function(btn) {
     }
     
     const audio = document.getElementById('audio');
-    const icon = card.querySelector('.music-play-btn i');
+    const playBtn = document.getElementById('play-btn');
+    const iconPause = document.getElementById('icon-pause');
     
-    // 修复暂停失效：使用自定义属性记录当前播放的链接，避免被浏览器转码干扰
+    // 判断全局播放器内部状态是否正在播放
+    const isFloatingPlaying = (iconPause && iconPause.style.display === 'block');
+    // 判断当前点击的是否是正在加载的这首歌
     const isCurrentSong = (audio.dataset.activeCardUrl === url);
-    const isPlaying = !audio.paused;
 
-    if (isCurrentSong && isPlaying) {
-        // 如果正是这张卡片在播放，则执行暂停
-        audio.pause();
-        icon.className = 'far fa-play-circle';
+    if (isCurrentSong && isFloatingPlaying) {
+        // 如果正在播放此卡片，则通过点击全局播放按钮来触发暂停（完美同步内部变量）
+        if (playBtn) playBtn.click();
     } else {
-        // 如果是新歌或者处于暂停状态，则播放
         if (!isCurrentSong) {
+            // 如果全局播放列表为空，塞入假数据防止播放器罢工
+            if (window._currentAppMusicSongs && window._currentAppMusicSongs.length === 0) {
+                window._currentAppMusicSongs.push({title: "分享音乐", sub: "来自聊天", url: url});
+            }
+            
             audio.src = url;
-            audio.dataset.activeCardUrl = url; // 贴上标记
+            audio.dataset.activeCardUrl = url; 
+            
+            // ★ 同步卡片信息到悬浮窗 ★
+            const titleEl = card.querySelector('div[style*="font-weight:600"]');
+            const artistEl = card.querySelector('div[style*="font-size:11px"]');
+            if (titleEl) document.getElementById('music-title').innerText = titleEl.innerText;
+            if (artistEl) document.getElementById('music-subtitle').innerText = artistEl.innerText;
+            
+            // 同步封面
+            const imgEl = card.querySelector('img');
+            const vinyl = document.getElementById('vinyl-record-visual');
+            if (vinyl && imgEl && !imgEl.src.includes('data:image/gif')) {
+                vinyl.style.backgroundImage = `url(${imgEl.src})`;
+                vinyl.style.backgroundSize = 'cover';
+                vinyl.classList.add('has-cover');
+                vinyl.style.borderWidth = '1px';
+            }
         }
         
-        // 把其他所有卡片的图标恢复成“播放”
-        document.querySelectorAll('.music-share-card .music-play-btn i').forEach(el => {
-            el.className = 'far fa-play-circle';
-        });
-        
-        // 把当前点击的变成“暂停”
-        icon.className = 'far fa-pause-circle';
-
-        audio.play().catch(e => {
-            console.log('缓冲延迟或加载中断:', e);
-            // 去掉了容易误报的弹窗，如果是纯网速慢它过一会自动会响
-            // 如果确实彻底失效，图标变回去
-            if(e.name === 'NotSupportedError') {
-                if(typeof showNotification==='function') showNotification('链接失效或无法播放', 'error');
-                icon.className = 'far fa-play-circle';
-            }
-        });
+        // 触发全局播放按钮
+        if (!isFloatingPlaying && playBtn) {
+            const origShow = window.showNotification;
+            window.showNotification = function(){}; // 屏蔽一下防抖弹窗
+            playBtn.click();
+            window.showNotification = origShow;
+        } else {
+            // 如果本来就在播放，仅仅是切歌，需手动调 play
+            audio.play().catch(()=>{});
+        }
     }
 };
 
-// 监听播放结束事件，让图标自动恢复
+// ★ 监听全局音频状态，反向同步给所有的聊天卡片图标 ★
 document.addEventListener('DOMContentLoaded', () => {
     const audio = document.getElementById('audio');
     if(audio) {
-        audio.addEventListener('ended', () => {
+        audio.addEventListener('play', () => {
+            // 检测是否被全局播放器切歌了
+            if (audio.dataset.activeCardUrl && !audio.src.includes(audio.dataset.activeCardUrl.substring(0, 20))) {
+                audio.dataset.activeCardUrl = ''; // 发现切歌，解除卡片绑定
+            }
+            // 更新卡片图标
+            document.querySelectorAll('.music-share-card').forEach(card => {
+                const icon = card.querySelector('.music-play-btn i');
+                if (audio.dataset.activeCardUrl && card.dataset.url === audio.dataset.activeCardUrl) {
+                    if(icon) icon.className = 'far fa-pause-circle';
+                } else {
+                    if(icon) icon.className = 'far fa-play-circle';
+                }
+            });
+        });
+        
+        // 暂停和结束时，恢复所有卡片为播放图标
+        const resetIcons = () => {
             document.querySelectorAll('.music-share-card .music-play-btn i').forEach(el => {
                 el.className = 'far fa-play-circle';
             });
-        });
+        };
+        audio.addEventListener('pause', resetIcons);
+        audio.addEventListener('ended', resetIcons);
     }
 });
 
@@ -31730,7 +32129,53 @@ window.sendMusicCard = function(title, artist, url, cover) {
     });
     
     if (typeof playSound === 'function') playSound('send');
-    setTimeout(() => { if(typeof simulateReply === 'function') simulateReply(); }, 1500 + Math.random() * 2000);
+    
+    // --- 接入自动回复与已读不回逻辑 ---
+    const delayRange = settings.replyDelayMax - settings.replyDelayMin;
+    const randomDelay = settings.replyDelayMin + Math.random() * delayRange;
+    const chance = Math.max(0, Math.min(1, Number(settings.readNoReplyChance) || 0));
+    const shouldIgnore = settings.allowReadNoReply && (Math.random() < chance);
+    const readDelay = 1500 + Math.random() * 2500;
+
+    setTimeout(() => {
+        let changed = false;
+        messages.forEach(msg => {
+            if (msg.sender === 'user' && msg.status !== 'read') {
+                msg.status = 'read';
+                changed = true;
+            }
+        });
+        if (changed) { 
+            if(typeof _updateReadReceiptsDOM === 'function') _updateReadReceiptsDOM(); 
+            if(typeof throttledSaveData === 'function') throttledSaveData(); 
+        }
+    }, readDelay);
+
+    if (window._pendingReplyTimer) clearTimeout(window._pendingReplyTimer);
+    window._pendingReplyTimer = null;
+
+    if (!shouldIgnore) {
+        if (settings.typingIndicatorEnabled) {
+            const tiWrapper = document.getElementById('typing-indicator-wrapper');
+            const tiLabel = document.getElementById('typing-indicator-label');
+            const tiAvatar = document.getElementById('typing-indicator-avatar');
+            if (tiLabel) tiLabel.textContent = (settings.partnerName || '对方') + ' 正在输入';
+            if (tiWrapper) { 
+                if(typeof positionTypingIndicator === 'function') positionTypingIndicator();
+                tiWrapper.style.display = 'block'; 
+            }
+            if (tiAvatar && window.DOMElements) {
+                const partnerImg = DOMElements.partner.avatar.querySelector('img');
+                tiAvatar.innerHTML = partnerImg ? `<img src="${partnerImg.src}">` : '<i class="fas fa-user"></i>';
+            }
+            const cc = document.querySelector('.chat-container');
+            if (cc) cc.scrollTop = cc.scrollHeight;
+        }
+        window._pendingReplyTimer = setTimeout(() => {
+            window._pendingReplyTimer = null;
+            if(typeof simulateReply === 'function') simulateReply();
+        }, randomDelay);
+    }
 };
 
 // 3. 打开分享面板 (保持提取黑科技与下拉直选)
@@ -31803,25 +32248,56 @@ window.openMusicShareModal = async function() {
             if (wyMatch) { artistInput.value = wyMatch[1].trim(); titleInput.value = wyMatch[2].trim(); } 
             else if (qqMatch) { artistInput.value = qqMatch[1].trim(); titleInput.value = qqMatch[2].trim(); }
 
-            const idMatch = text.match(/id=(\d+)/);
-            if (idMatch && text.includes('163.com')) {
-                const songId = idMatch[1];
-                if(typeof showNotification==='function') showNotification('检测到网易云，正在黑科技提取...', 'info', 1500);
-                try {
-                    const res = await fetch(`https://api.injahow.cn/meting/?server=netease&type=song&id=${songId}`);
-                    const data = await res.json();
-                    if(data && data.length > 0) {
-                        const songInfo = data[0];
-                        titleInput.value = songInfo.name || titleInput.value;
-                        artistInput.value = songInfo.artist || artistInput.value;
-                        urlInput.value = songInfo.url || `http://music.163.com/song/media/outer/url?id=${songId}.mp3`;
-                        coverInput.value = songInfo.cover || '';
-                        if(typeof showNotification==='function') showNotification('提取成功！包含封面和可播放链接', 'success', 2000);
-                    }
-                } catch(err) {
-                    urlInput.value = `http://music.163.com/song/media/outer/url?id=${songId}.mp3`;
-                }
+const idMatch = text.match(/id=(\d+)/);
+if (idMatch && text.includes('163.com')) {
+    const songId = idMatch[1];
+    if(typeof showNotification==='function') showNotification('网易云识别中，正在多节点提取...', 'info', 1500);
+    
+    // 设置多节点备用 API 列表
+    const apis = [
+        `https://api.i-meto.com/meting/api?server=netease&type=song&id=${songId}`,
+        `https://api.injahow.cn/meting/?server=netease&type=song&id=${songId}`
+    ];
+    
+    let success = false;
+    for (let api of apis) {
+        try {
+            const res = await fetch(api);
+            const data = await res.json();
+            if (data && data.length > 0) {
+                const songInfo = data[0];
+                titleInput.value = songInfo.name || titleInput.value;
+                artistInput.value = songInfo.artist || artistInput.value;
+                urlInput.value = songInfo.url || `http://music.163.com/song/media/outer/url?id=${songId}.mp3`;
+                
+                success = true;
+                break; // 只要有一个接口成功了，就跳出循环
             }
+        } catch(e) {
+            // 失败了不报错，继续试下一个 API
+        }
+    }
+    
+    if (success) {
+        if(typeof showNotification==='function') showNotification('提取成功！', 'success', 2000);
+    } else {
+        // 终极兜底：如果上面全挂了，直接请求网易云官方原始 API 拿封面和信息
+        try {
+            urlInput.value = `http://music.163.com/song/media/outer/url?id=${songId}.mp3`;
+            const res = await fetch(`https://music.163.com/api/song/detail/?id=${songId}&ids=[${songId}]`);
+            const data = await res.json();
+            if (data.songs && data.songs.length > 0) {
+                titleInput.value = data.songs[0].name || titleInput.value;
+                artistInput.value = data.songs[0].artists[0].name || artistInput.value;
+                
+            }
+            if(typeof showNotification==='function') showNotification('启用官方通道提取成功', 'success', 2000);
+        } catch(e) {
+            // 连官方信息都拿不到，至少保住 mp3 播放链接
+            if(typeof showNotification==='function') showNotification('获取封面失败，已保留基础播放链接', 'warning', 2000);
+        }
+    }
+}
         });
         
         modal.querySelector('#music-share-confirm-btn').addEventListener('click', () => {
@@ -31895,6 +32371,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 2500); 
 });
+
+// ====== 音乐卡片终极样式修正补丁 ======
+(function() {
+    if (document.getElementById('music-card-ultimate-style')) return;
+    const style = document.createElement('style');
+    style.id = 'music-card-ultimate-style';
+    style.innerHTML = `
+        /* 强制覆盖所有历史卡片的内联宽高度和内边距，刷新也不会失效 */
+.music-share-card {
+    padding: 14px 12px !important; /* 上下间距加大到14px，左右收窄到12px */
+    width: 210px !important;       /* 卡片总宽度稍微收缩一点点 */
+    gap: 10px !important;          /* 增加这行：让唱片、文字、按钮之间的距离变小，整体往左靠拢 */
+    margin: 0 !important;
+}
+        /* 消除外面气泡的底色和隐形换行空白 */
+        .message:has(.music-share-card) { 
+            background: transparent !important; 
+            box-shadow: none !important; 
+            padding: 0 !important; 
+            border: none !important; 
+            line-height: 0 !important; 
+        }
+        /* 时间戳拉近 */
+        .message-wrapper:has(.music-share-card) { margin-bottom: 2px !important; }
+        .message-wrapper:has(.music-share-card) .message-meta { margin-top: 0px !important; }
+        
+        /* 修复引用(回复)框里的卡片，缩小它，让它不那么突兀 */
+        .reply-indicator .music-share-card {
+            transform: scale(0.85);
+            transform-origin: left center;
+            margin: -6px 0 -6px -8px !important;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+    `;
+    document.head.appendChild(style);
+})();
 </script>
     <script>
 /* --- app.js --- */
