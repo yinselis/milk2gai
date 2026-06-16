@@ -10890,6 +10890,24 @@
 /* ==========================================
    刮刮乐彩蛋专用样式
    ========================================== */
+   /* 去除刮刮乐外层多余的聊天气泡背景 */
+.message:has(.scratch-card) {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: visible !important;
+}
+
+/* 抵消鼠标悬停时产生的气泡高亮阴影 */
+.message:has(.scratch-card):hover {
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.scratch-card {
+    position: relative;
+    
 .scratch-card {
     position: relative;
     cursor: pointer;
