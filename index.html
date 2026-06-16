@@ -31632,29 +31632,37 @@ window.toggleInlineMusic = function(btn) {
     const audio = document.getElementById('audio');
     const icon = card.querySelector('.music-play-btn i');
     
-    // 判断当前 audio 是否正在播放这首歌
-    const isCurrentSong = audio.src.includes(url) || url.includes(audio.src);
+    // 修复暂停失效：使用自定义属性记录当前播放的链接，避免被浏览器转码干扰
+    const isCurrentSong = (audio.dataset.activeCardUrl === url);
     const isPlaying = !audio.paused;
 
-    // 先把页面上所有音乐卡片的图标恢复成“播放”状态
-    document.querySelectorAll('.music-share-card .music-play-btn i').forEach(el => {
-        el.className = 'far fa-play-circle';
-    });
-
     if (isCurrentSong && isPlaying) {
-        // 正在播放当前歌曲，则暂停
+        // 如果正是这张卡片在播放，则执行暂停
         audio.pause();
         icon.className = 'far fa-play-circle';
     } else {
-        // 播放新歌或继续播放
+        // 如果是新歌或者处于暂停状态，则播放
         if (!isCurrentSong) {
             audio.src = url;
+            audio.dataset.activeCardUrl = url; // 贴上标记
         }
-        audio.play().then(() => {
-            icon.className = 'far fa-pause-circle';
-        }).catch(e => {
-            if(typeof showNotification==='function') showNotification('播放失败，可能链接已失效', 'error');
-            icon.className = 'far fa-play-circle';
+        
+        // 把其他所有卡片的图标恢复成“播放”
+        document.querySelectorAll('.music-share-card .music-play-btn i').forEach(el => {
+            el.className = 'far fa-play-circle';
+        });
+        
+        // 把当前点击的变成“暂停”
+        icon.className = 'far fa-pause-circle';
+
+        audio.play().catch(e => {
+            console.log('缓冲延迟或加载中断:', e);
+            // 去掉了容易误报的弹窗，如果是纯网速慢它过一会自动会响
+            // 如果确实彻底失效，图标变回去
+            if(e.name === 'NotSupportedError') {
+                if(typeof showNotification==='function') showNotification('链接失效或无法播放', 'error');
+                icon.className = 'far fa-play-circle';
+            }
         });
     }
 };
@@ -31702,7 +31710,7 @@ window.sendMusicCard = function(title, artist, url, cover) {
 
     // 恢复旧版尺寸：宽 240px，行距拉开
     const cardHtml = `
-    <div class="music-share-card" data-url="${safeUrl}" ${clickAction} style="display:flex;align-items:center;gap:14px;background:var(--secondary-bg);border:1px solid rgba(var(--accent-color-rgb),0.15);border-radius:14px;padding:8px 16px;width:240px;text-align:left;box-shadow:0 4px 12px rgba(0,0,0,0.05);margin:0; ${cursorStyle}">
+    <div class="music-share-card" data-url="${safeUrl}" ${clickAction} style="display:flex;align-items:center;gap:14px;background:var(--secondary-bg);border:1px solid rgba(var(--accent-color-rgb),0.15);border-radius:14px;padding:12px 16px;width:240px;text-align:left;box-shadow:0 4px 12px rgba(0,0,0,0.05);margin:0; ${cursorStyle}">
         <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, var(--accent-color), rgba(var(--accent-color-rgb),0.6));display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;box-shadow:0 2px 8px rgba(var(--accent-color-rgb),0.3);">
             ${coverHtml}
         </div>
