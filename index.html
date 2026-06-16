@@ -31712,11 +31712,6 @@ window.sendMusicCard = function(title, artist, url, cover) {
     if (typeof playSound === 'function') playSound('send');
     setTimeout(() => { if(typeof simulateReply === 'function') simulateReply(); }, 1500 + Math.random() * 2000);
 };
-    
-    if (typeof playSound === 'function') playSound('send');
-    // 延迟触发对方的自动回复
-    setTimeout(() => { if(typeof simulateReply === 'function') simulateReply(); }, 1500 + Math.random() * 2000);
-};
 
 // 3. 打开分享面板 (全面打通内置与新增歌单)
 window.openMusicShareModal = async function() {
