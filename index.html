@@ -10978,6 +10978,28 @@
     box-shadow: 0 4px 12px rgba(var(--accent-color-rgb), 0.15);
     border-style: solid;
 }
+
+/* ==========================================
+   旧浏览器兼容：特殊卡片去气泡
+   ========================================== */
+.message.message-no-bubble {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: visible !important;
+}
+
+.message.message-no-bubble:hover {
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+/* 带有回复引用时，保留引用部分的样式间距 */
+.message.message-no-bubble .reply-indicator {
+    margin-bottom: 8px;
+    border-radius: 8px;
+}
 </style>
 
     <style id="css-live-preview-style"></style>
@@ -15918,6 +15940,7 @@ function createMessageFragment(msg, prevMsg, nextMsg, lastSenderRef) {
     }
 
     const isImageOnly = !msg.text && !!msg.image;
+    const isSpecialCard = msg.text && (msg.text.includes('music-share-card') || msg.text.includes('scratch-card'));
     let content = msg.text ? `<div>${msg.text.replace(/\n/g, '<br>')}</div>` : '';
     if (msg.image) content += `<img src="${msg.image}" class="message-image${isImageOnly ? ' message-image-only' : ''}" alt="图片" style="max-width:${isImageOnly ? '100px' : '100px'}; border-radius: 12px;${!isImageOnly ? ' margin-top: 6px;' : ''} cursor: pointer;" onclick="viewImage('${msg.image}')">`;
     messageHTML += content;
@@ -15927,6 +15950,9 @@ function createMessageFragment(msg, prevMsg, nextMsg, lastSenderRef) {
         messageDiv.className = `message message-${msg.sender === 'user' ? 'sent' : 'received'} message-image-bubble-none`;
     } else {
         messageDiv.className = `message message-${msg.sender === 'user' ? 'sent' : 'received'} ${settings.bubbleStyle}`;
+        if (isSpecialCard) {
+            messageDiv.classList.add('message-no-bubble');
+        }
     }
     messageDiv.innerHTML = messageHTML;
 
@@ -16591,8 +16617,7 @@ const shouldSendMusic = settings.partnerMusicEnabled && window._currentAppMusicS
 
                     // ====== 新增：5% 概率触发刮刮乐彩蛋 ======
                     if (finalText && Math.random() < 0.05) {
-                        // 将正常文字用刮刮乐包裹，去掉多余换行符防止撑开高度，并注入兼容旧浏览器的去气泡脚本
-                        finalText = `<div class="scratch-card" onclick="this.classList.add('revealed')"><div class="scratch-cover"><i class="fas fa-magic"></i> <span>刮开看看</span></div><div class="scratch-text">${finalText}</div></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" onload="setTimeout(()=>{var p=this.closest('.message');if(p){p.style.setProperty('background', 'transparent', 'important');p.style.setProperty('box-shadow', 'none', 'important');p.style.setProperty('padding', '0', 'important');p.style.setProperty('border', 'none', 'important');}}, 10);" style="display:none;">`;
+                        finalText = `<div class="scratch-card" onclick="this.classList.add('revealed')"><div class="scratch-cover"><i class="fas fa-magic"></i> <span>刮开看看</span></div><div class="scratch-text">${finalText}</div></div>`;
                     }
                     // ========================================
 
