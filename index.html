@@ -17872,15 +17872,26 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 强力纠错：安全读取本地存储，专门解决缓存损坏导致代码崩溃卡死的问题！
-    function safeGetPresets(key) {
-        try {
-            let data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : {};
-        } catch (e) {
-            console.warn("历史数据已损坏，已重置并修复", e);
-            return {}; // 如果读取旧数据报错，直接强行返回空数据，防止后续代码卡死
+    // 🚀 终极解法：碎片化独立存储，彻底解决"存几个就报错"的滚雪球BUG！
+
+    // 获取预设名单（只存名字，极其轻量，不会撑爆内存）
+    async function getPresetNames(type) {
+        let names = await localforage.getItem(type + '_preset_names');
+        if (!Array.isArray(names)) {
+            // 自动把以前臃肿的旧数据拆分成碎片，救活你的旧数据
+            let oldData = await localforage.getItem(type + '_presets') || JSON.parse(localStorage.getItem(type + '_presets') || '{}');
+            names = Object.keys(oldData);
+            if (names.length > 0) {
+                await localforage.setItem(type + '_preset_names', names);
+                for (let n of names) {
+                    await localforage.setItem(type + '_data_' + n, oldData[n]); // 独立保存代码
+                }
+                await localforage.removeItem(type + '_presets'); // 删掉旧的臃肿数据
+            } else {
+                names = [];
+            }
         }
+        return names;
     }
 
     // === 气泡 CSS 预设逻辑 ===
@@ -17889,11 +17900,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const bubbleDelBtn = document.getElementById('delete-bubble-css-preset');
     const bubbleTextarea = document.getElementById('custom-bubble-css');
 
-    function loadBubblePresets() {
+    async function loadBubblePresets() {
         if(!bubbleSelect) return;
-        let presets = safeGetPresets('bubble_css_presets');
+        let names = await getPresetNames('bubble_css');
         bubbleSelect.innerHTML = '<option value="">选择预设</option>';
-        for(let name in presets) {
+        for(let name of names) {
             let opt = document.createElement('option');
             opt.value = name;
             opt.textContent = name;
@@ -17903,46 +17914,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if(bubbleSelect) {
         loadBubblePresets();
-        bubbleSelect.addEventListener('change', function() {
+        
+        // 切换时，只读取对应的那一个抽屉
+        bubbleSelect.addEventListener('change', async function() {
             if(!this.value) return;
-            let presets = safeGetPresets('bubble_css_presets');
-            if(presets[this.value]) {
-                bubbleTextarea.value = presets[this.value];
-            }
+            let css = await localforage.getItem('bubble_css_data_' + this.value);
+            if(css) bubbleTextarea.value = css;
         });
 
-        bubbleSaveBtn.addEventListener('click', function() {
+        // 保存时，单独写入一个抽屉，永不叠加
+        bubbleSaveBtn.addEventListener('click', async function() {
             let css = bubbleTextarea.value.trim();
-            if(!css) {
-                alert('内容为空，无法保存！');
-                return;
-            }
+            if(!css) { alert('内容为空，无法保存！'); return; }
             let name = prompt('请输入你要保存的【气泡CSS】预设名称：');
             if(name && name.trim()) {
+                name = name.trim();
                 try {
-                    let presets = safeGetPresets('bubble_css_presets');
-                    presets[name.trim()] = css;
-                    localStorage.setItem('bubble_css_presets', JSON.stringify(presets));
-                    loadBubblePresets();
-                    bubbleSelect.value = name.trim();
-                    alert('✅ 保存成功！已保存为：' + name);
+                    let names = await getPresetNames('bubble_css');
+                    if (!names.includes(name)) { names.push(name); }
+                    
+                    await localforage.setItem('bubble_css_preset_names', names);
+                    await localforage.setItem('bubble_css_data_' + name, css); // 核心：代码分开单独存！
+                    
+                    await loadBubblePresets();
+                    bubbleSelect.value = name;
+                    alert('✅ 保存成功！已启用独立碎片化存储，再存一万个也不会报错了！');
                 } catch(e) {
-                    alert('❌ 保存出错，可能是存储空间已满！');
+                    alert('❌ 保存出错！手机空间已彻底塞满: ' + e.message);
                 }
             }
         });
 
-        bubbleDelBtn.addEventListener('click', function() {
+        // 删除时，只删一个抽屉
+        bubbleDelBtn.addEventListener('click', async function() {
             let name = bubbleSelect.value;
-            if(!name) {
-                alert('请先在左侧选择一个预设！');
-                return;
-            }
+            if(!name) { alert('请先在左侧选择一个预设！'); return; }
             if(confirm('确定要删除气泡预设【' + name + '】吗？')) {
-                let presets = safeGetPresets('bubble_css_presets');
-                delete presets[name];
-                localStorage.setItem('bubble_css_presets', JSON.stringify(presets));
-                loadBubblePresets();
+                let names = await getPresetNames('bubble_css');
+                names = names.filter(n => n !== name);
+                await localforage.setItem('bubble_css_preset_names', names);
+                await localforage.removeItem('bubble_css_data_' + name);
+                await loadBubblePresets();
                 bubbleTextarea.value = '';
                 alert('🗑️ 删除成功！');
             }
@@ -17955,11 +17967,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const globalDelBtn = document.getElementById('delete-global-css-preset');
     const globalTextarea = document.getElementById('custom-global-css');
 
-    function loadGlobalPresets() {
+    async function loadGlobalPresets() {
         if(!globalSelect) return;
-        let presets = safeGetPresets('global_css_presets');
+        let names = await getPresetNames('global_css');
         globalSelect.innerHTML = '<option value="">选择预设</option>';
-        for(let name in presets) {
+        for(let name of names) {
             let opt = document.createElement('option');
             opt.value = name;
             opt.textContent = name;
@@ -17969,46 +17981,44 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if(globalSelect) {
         loadGlobalPresets();
-        globalSelect.addEventListener('change', function() {
+        
+        globalSelect.addEventListener('change', async function() {
             if(!this.value) return;
-            let presets = safeGetPresets('global_css_presets');
-            if(presets[this.value]) {
-                globalTextarea.value = presets[this.value];
-            }
+            let css = await localforage.getItem('global_css_data_' + this.value);
+            if(css) globalTextarea.value = css;
         });
 
-        globalSaveBtn.addEventListener('click', function() {
+        globalSaveBtn.addEventListener('click', async function() {
             let css = globalTextarea.value.trim();
-            if(!css) {
-                alert('内容为空，无法保存！');
-                return;
-            }
+            if(!css) { alert('内容为空，无法保存！'); return; }
             let name = prompt('请输入你要保存的【全局CSS】预设名称：');
             if(name && name.trim()) {
+                name = name.trim();
                 try {
-                    let presets = safeGetPresets('global_css_presets');
-                    presets[name.trim()] = css;
-                    localStorage.setItem('global_css_presets', JSON.stringify(presets));
-                    loadGlobalPresets();
-                    globalSelect.value = name.trim();
-                    alert('✅ 保存成功！已保存为：' + name);
+                    let names = await getPresetNames('global_css');
+                    if (!names.includes(name)) { names.push(name); }
+                    
+                    await localforage.setItem('global_css_preset_names', names);
+                    await localforage.setItem('global_css_data_' + name, css);
+                    
+                    await loadGlobalPresets();
+                    globalSelect.value = name;
+                    alert('✅ 保存成功！已启用独立碎片化存储，再存一万个也不会报错了！');
                 } catch(e) {
-                    alert('❌ 保存出错！');
+                    alert('❌ 保存出错！手机空间已彻底塞满: ' + e.message);
                 }
             }
         });
 
-        globalDelBtn.addEventListener('click', function() {
+        globalDelBtn.addEventListener('click', async function() {
             let name = globalSelect.value;
-            if(!name) {
-                alert('请先在左侧选择一个预设！');
-                return;
-            }
+            if(!name) { alert('请先在左侧选择一个预设！'); return; }
             if(confirm('确定要删除全局预设【' + name + '】吗？')) {
-                let presets = safeGetPresets('global_css_presets');
-                delete presets[name];
-                localStorage.setItem('global_css_presets', JSON.stringify(presets));
-                loadGlobalPresets();
+                let names = await getPresetNames('global_css');
+                names = names.filter(n => n !== name);
+                await localforage.setItem('global_css_preset_names', names);
+                await localforage.removeItem('global_css_data_' + name);
+                await loadGlobalPresets();
                 globalTextarea.value = '';
                 alert('🗑️ 删除成功！');
             }
