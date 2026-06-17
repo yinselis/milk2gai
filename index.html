@@ -17938,7 +17938,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     await loadBubblePresets();
                     bubbleSelect.value = name;
-                    alert('✅ 保存成功！已启用独立碎片化存储，再存一万个也不会报错了！');
+                    showNotification('保存成功！', 'success');
                 } catch(e) {
                     alert('❌ 保存出错！手机空间已彻底塞满: ' + e.message);
                 }
@@ -18003,7 +18003,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     await loadGlobalPresets();
                     globalSelect.value = name;
-                    alert('✅ 保存成功！已启用独立碎片化存储，再存一万个也不会报错了！');
+                    showNotification('保存成功！', 'success');
                 } catch(e) {
                     alert('❌ 保存出错！手机空间已彻底塞满: ' + e.message);
                 }
