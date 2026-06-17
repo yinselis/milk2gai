@@ -10998,6 +10998,175 @@
     margin-bottom: 8px;
     border-radius: 8px;
 }
+
+/* 养成系统样式 */
+.comp-tab-btn {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.comp-tab-btn.active {
+    background: var(--accent-color);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(var(--accent-color-rgb), 0.3);
+}
+
+/* ==========================================
+   羁绊养成系统 & 全屏桌宠系统
+   ========================================== */
+
+/* 顶部 Tab 切换按钮 */
+.comp-tab-btn {
+    flex: 1;
+    padding: 10px 0;
+    border: none;
+    background: transparent;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    font-family: var(--font-family);
+    position: relative;
+    overflow: hidden;
+}
+.comp-tab-btn:hover {
+    background-color: var(--message-received-bg);
+    color: var(--text-primary);
+}
+.comp-tab-btn.active {
+    background: var(--accent-color);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(var(--accent-color-rgb), 0.3);
+    transform: translateY(-1px);
+}
+
+/* 宠物头像上传区动效 */
+#pet-img-upload-wrapper:hover {
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 4px 12px rgba(var(--accent-color-rgb), 0.15);
+}
+
+/* 养成互动按钮特效 */
+.comp-action-btn {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.comp-action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+.comp-action-btn:active {
+    transform: translateY(1px);
+}
+
+/* 呼吸动画（给植物发芽用） */
+@keyframes breathSoftly {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1)); }
+    50% { transform: scale(1.05); filter: drop-shadow(0 8px 16px rgba(var(--accent-color-rgb), 0.2)); }
+}
+.plant-breathing {
+    animation: breathSoftly 3s ease-in-out infinite;
+}
+
+/* ==========================================
+   桌宠悬浮球专属样式 (为下一步做准备)
+   ========================================== */
+#desktop-pet-container {
+    position: fixed;
+    bottom: 20px; /* 默认在屏幕底部 */
+    left: 50%;
+    z-index: 99999;
+    width: 64px; /* 桌宠的显示大小 */
+    height: 64px;
+    pointer-events: auto; /* 允许点击和拖拽 */
+    transition: transform 0.1s linear; /* 转向动画 */
+    display: none; /* 默认隐藏 */
+    cursor: grab;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
+}
+#desktop-pet-container:active {
+    cursor: grabbing;
+}
+/* 桌宠图片本身 (加入翻转过渡) */
+#desktop-pet-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    transition: transform 0.2s; /* 让转身更平滑 */
+}
+/* 翻转效果 (改在图片上生效，防止文字气泡变成镜像) */
+.pet-flip-x {
+    transform: scaleX(-1);
+}
+
+/* 桌宠头上的聊天气泡 (支持多行、自动向上撑开) */
+#desktop-pet-bubble {
+    position: absolute;
+    bottom: 100%; /* 锚点在宠物头顶 */
+    left: 50%;
+    margin-bottom: 12px; /* 给小尾巴留出空间 */
+    transform: translateX(-50%) scale(0);
+    background: var(--secondary-bg);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: center;
+    
+    /* 核心：允许多行和自动换行 */
+    white-space: normal; 
+    word-wrap: break-word;
+    word-break: break-all;
+    max-width: 180px; /* 限制最大宽度，超过就换行 */
+    width: max-content;
+    
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    border: 1px solid var(--border-color);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: bottom center;
+    z-index: 10;
+    pointer-events: none;
+}
+/* 气泡小尾巴 */
+#desktop-pet-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px 6px 0;
+    border-style: solid;
+    border-color: var(--secondary-bg) transparent transparent;
+}
+/* 气泡边框的小尾巴补丁 */
+#desktop-pet-bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -7.5px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 7px 7px 0;
+    border-style: solid;
+    border-color: var(--border-color) transparent transparent;
+    z-index: -1;
+}
+#desktop-pet-bubble.show {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+}
 </style>
 
     <style id="css-live-preview-style"></style>
@@ -12411,6 +12580,10 @@
                     <div class="settings-item" id="envelope-function">
                         <i class="fas fa-envelope"></i><span>信封投递</span>
                     </div>
+                                        <div class="settings-item" id="companion-function" onclick="showCompanionModal()">
+                        <i class="fas fa-paw"></i><span>羁绊养成</span>
+                        <span style="font-size:10px;background:var(--accent-color);color:#fff;padding:2px 6px;border-radius:10px;margin-left:auto;">Beta</span>
+                    </div>
                 </div>
             </div>
 
@@ -13156,7 +13329,194 @@
         </div>
     </div>
 
+    <!-- 羁绊养成弹窗 -->
+    <div class="modal" id="companion-modal">
+        <div class="modal-content" style="background: var(--secondary-bg); max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="modal-title" style="margin-bottom: 0;">
+                <i class="fas fa-paw"></i><span>羁绊养成 & 桌宠</span>
+            </div>
+            
+            <!-- 顶部 Tab 切换 -->
+            <div style="display:flex; gap:6px; padding: 10px 14px; border-bottom: 1px solid var(--border-color); background: var(--primary-bg);">
+                <button class="comp-tab-btn active" onclick="switchCompTab('plant')" id="comp-tab-plant" style="font-size:12px;">🪴 植物</button>
+                <button class="comp-tab-btn" onclick="switchCompTab('pet')" id="comp-tab-pet" style="font-size:12px;">🐾 宠物</button>
+                <button class="comp-tab-btn" onclick="switchCompTab('shimeji')" id="comp-tab-shimeji" style="font-size:12px;">🥰 桌面的TA</button>
+            </div>
 
+            <div style="flex: 1; overflow-y: auto; padding: 16px;">
+                <!-- 1. 植物面板 -->
+                <div id="comp-panel-plant" style="display: block;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div id="plant-stage-emoji" style="font-size: 60px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1)); transition: all 0.3s; margin: 10px 0;">🌱</div>
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 8px;">
+                            <input type="text" id="plant-name-input" value="我们的羁绊之种" style="font-size: 16px; font-weight: bold; color: var(--accent-color); background: transparent; border: 1px dashed transparent; text-align: center; outline: none; width: 150px; transition: 0.2s;" onfocus="this.style.border='1px dashed var(--accent-color)'" onblur="this.style.border='1px dashed transparent'; saveCompanionData();">
+                            <i class="fas fa-pen" style="font-size: 12px; color: var(--text-secondary); opacity: 0.5;"></i>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;" id="plant-level-text">Lv.1 沉睡的种子</div>
+                    </div>
+
+                    <div style="background: var(--primary-bg); border-radius: 12px; padding: 12px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+                            <span style="font-weight: bold; color: var(--text-primary);">成长值</span>
+                            <span id="plant-exp-text" style="color: var(--accent-color);">0 / 100</span>
+                        </div>
+                        <div style="height: 8px; background: rgba(var(--accent-color-rgb), 0.1); border-radius: 4px; overflow: hidden;">
+                            <div id="plant-exp-bar" style="height: 100%; width: 0%; background: var(--accent-color); transition: width 0.5s ease;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 互动按钮 (已修复居中歪斜) -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                        <button class="modal-btn modal-btn-secondary" onclick="interactPlant('water')" style="display:flex; flex-direction: column; align-items:center; justify-content:center; gap: 6px; padding: 12px 0;">
+                            <i class="fas fa-tint" style="color: #4facfe; font-size: 18px;"></i><span style="font-size: 12px;">浇水</span>
+                        </button>
+                        <button class="modal-btn modal-btn-secondary" onclick="interactPlant('fertilize')" style="display:flex; flex-direction: column; align-items:center; justify-content:center; gap: 6px; padding: 12px 0;">
+                            <i class="fas fa-magic" style="color: #f6d365; font-size: 18px;"></i><span style="font-size: 12px;">施肥</span>
+                        </button>
+                        <button class="modal-btn modal-btn-secondary" onclick="interactPlant('bug')" style="display:flex; flex-direction: column; align-items:center; justify-content:center; gap: 6px; padding: 12px 0;">
+                            <i class="fas fa-bug" style="color: #ff0844; font-size: 18px;"></i><span style="font-size: 12px;">除虫</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. 动物/灵宠面板 -->
+                <div id="comp-panel-pet" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 20px; position: relative;">
+                        <div style="width: 80px; height: 80px; margin: 0 auto 10px; border-radius: 20px; background: var(--primary-bg); border: 2px dashed var(--border-color); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; position: relative;" onclick="document.getElementById('pet-img-upload').click()">
+                            <img id="pet-img-preview" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                            <i class="fas fa-camera" id="pet-img-icon" style="font-size: 24px; color: var(--text-secondary);"></i>
+                        </div>
+                        <input type="file" id="pet-img-upload" accept="image/*" style="display: none;" onchange="handlePetImageUpload(this)">
+                        
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 8px;">
+                            <input type="text" id="pet-name-input" value="小团子" style="font-size: 16px; font-weight: bold; color: var(--accent-color); background: transparent; border: 1px dashed transparent; text-align: center; outline: none; width: 120px; transition: 0.2s;" onfocus="this.style.border='1px dashed var(--accent-color)'" onblur="this.style.border='1px dashed transparent'; saveCompanionData();">
+                            <i class="fas fa-pen" style="font-size: 12px; color: var(--text-secondary); opacity: 0.5;"></i>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--primary-bg); border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px;">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                <span><i class="fas fa-drumstick-bite" style="color: #ff9a9e; width:16px;"></i> 饱食度</span><span id="pet-hunger-text">80/100</span>
+                            </div>
+                            <div style="height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden;">
+                                <div id="pet-hunger-bar" style="height: 100%; width: 80%; background: linear-gradient(90deg, #ff9a9e, #fecfef); transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                <span><i class="fas fa-heart" style="color: #f77062; width:16px;"></i> 心情值</span><span id="pet-mood-text">90/100</span>
+                            </div>
+                            <div style="height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden;">
+                                <div id="pet-mood-bar" style="height: 100%; width: 90%; background: linear-gradient(90deg, #f77062, #fe5196); transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                <span><i class="fas fa-bath" style="color: #4facfe; width:16px;"></i> 清洁度</span><span id="pet-clean-text">100/100</span>
+                            </div>
+                            <div style="height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden;">
+                                <div id="pet-clean-bar" style="height: 100%; width: 100%; background: linear-gradient(90deg, #4facfe, #00f2fe); transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 互动按钮 (已修复居中) -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
+                        <button class="modal-btn modal-btn-secondary" onclick="interactPet('feed')" style="display:flex; flex-direction: column; align-items:center; justify-content:center; gap: 6px; padding: 10px 0;">
+                            <i class="fas fa-bone" style="font-size: 16px;"></i><span style="font-size: 11px;">喂食</span>
+                        </button>
+                        <button class="modal-btn modal-btn-secondary" onclick="interactPet('play')" style="display:flex; flex-direction: column; align-items:center; justify-content:center; gap: 6px; padding: 10px 0;">
+                            <i class="fas fa-football-ball" style="font-size: 16px;"></i><span style="font-size: 11px;">玩耍</span>
+                        </button>
+                        <button class="modal-btn modal-btn-secondary" onclick="interactPet('bathe')" style="display:flex; flex-direction: column; align-items:center; justify-content:center; gap: 6px; padding: 10px 0;">
+                            <i class="fas fa-shower" style="font-size: 16px;"></i><span style="font-size: 11px;">洗澡</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. 桌面梦角 (设置面板) -->
+                <div id="comp-panel-shimeji" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        <div style="font-size: 14px; font-weight: bold; color: var(--text-primary);">TA的状态图册 </div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top:4px;">仅上传静止图也可正常使用。上传多张可触发动态变化</div>
+                    </div>
+
+                    <!-- 多状态图片上传网格 -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
+                        <!-- 状态1：静止/默认 -->
+                        <div style="display:flex; flex-direction:column; align-items:center;">
+                            <div style="width: 60px; height: 60px; border-radius: 12px; background: var(--primary-bg); border: 2px dashed var(--accent-color); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; position: relative;" onclick="document.getElementById('shimeji-img-idle').click()">
+                                <img id="preview-shimeji-idle" src="" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+                                <i class="fas fa-street-view" id="icon-shimeji-idle" style="font-size: 20px; color: var(--accent-color);"></i>
+                            </div>
+                            <span style="font-size:11px; margin-top:6px; font-weight:bold;">发呆(静止)</span>
+                            <input type="file" id="shimeji-img-idle" accept="image/*" style="display: none;" onchange="handleShimejiStateUpload('idle', this)">
+                        </div>
+                        
+                        <!-- 状态2：走动 -->
+                        <div style="display:flex; flex-direction:column; align-items:center;">
+                            <div style="width: 60px; height: 60px; border-radius: 12px; background: var(--primary-bg); border: 2px dashed var(--border-color); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; position: relative;" onclick="document.getElementById('shimeji-img-walk').click()">
+                                <img id="preview-shimeji-walk" src="" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+                                <i class="fas fa-walking" id="icon-shimeji-walk" style="font-size: 20px; color: var(--text-secondary);"></i>
+                            </div>
+                            <span style="font-size:11px; margin-top:6px; color:var(--text-secondary);">走动(可选)</span>
+                            <input type="file" id="shimeji-img-walk" accept="image/*" style="display: none;" onchange="handleShimejiStateUpload('walk', this)">
+                        </div>
+
+                        <!-- 状态3：被拖拽 -->
+                        <div style="display:flex; flex-direction:column; align-items:center;">
+                            <div style="width: 60px; height: 60px; border-radius: 12px; background: var(--primary-bg); border: 2px dashed var(--border-color); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; position: relative;" onclick="document.getElementById('shimeji-img-drag').click()">
+                                <img id="preview-shimeji-drag" src="" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+                                <i class="fas fa-hand-holding" id="icon-shimeji-drag" style="font-size: 20px; color: var(--text-secondary);"></i>
+                            </div>
+                            <span style="font-size:11px; margin-top:6px; color:var(--text-secondary);">拖拽(可选)</span>
+                            <input type="file" id="shimeji-img-drag" accept="image/*" style="display: none;" onchange="handleShimejiStateUpload('drag', this)">
+                        </div>
+                    </div>
+
+                    <div style="background: var(--primary-bg); border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+                        <div style="display:flex; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:12px; font-weight:bold; width:60px;">大小</span>
+                            <input type="range" min="40" max="200" value="80" class="font-size-slider" id="shimeji-size-slider" oninput="updateShimejiSettings()" style="flex:1;">
+                        </div>
+                        <div style="display:flex; align-items:center; margin-bottom:14px;">
+                            <span style="font-size:12px; font-weight:bold; width:60px;">速度</span>
+                            <input type="range" min="0" max="30" value="8" class="font-size-slider" id="shimeji-speed-slider" oninput="updateShimejiSettings()" style="flex:1;">
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px dashed var(--border-color);padding-top:12px;">
+                            <span style="font-size:12px;font-weight:bold;">活动范围</span>
+                            <div style="display:flex;gap:8px;">
+                                <button class="modal-btn modal-btn-secondary" id="shimeji-mode-bottom" onclick="setShimejiMode('bottom')" style="padding:4px 10px;font-size:11px;">仅底部</button>
+                                <button class="modal-btn modal-btn-primary" id="shimeji-mode-free" onclick="setShimejiMode('free')" style="padding:4px 10px;font-size:11px;">全屏乱跑</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 桌宠召唤开关 -->
+                    <div id="pet-desktop-toggle-row" class="setting-pill-row" style="padding: 12px 14px; background:var(--primary-bg); border:1px solid var(--border-color); border-radius:12px;" onclick="toggleDesktopPet()">
+                        <div class="setting-pill-icon"><i class="fas fa-desktop"></i></div>
+                        <div style="flex:1;">
+                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);">在屏幕上召唤</div>
+                            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">开启后Ta会陪伴在你身边</div>
+                        </div>
+                        <div class="setting-pill-switch"><div class="setting-pill-knob" id="pet-desktop-toggle-knob"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-buttons" style="margin: 0; padding: 12px 16px; border-top: 1px solid var(--border-color);">
+                <button class="modal-btn modal-btn-secondary" onclick="hideModal(document.getElementById('companion-modal'))" style="width: 100%;">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 网页全屏桌宠容器 -->
+    <div id="desktop-pet-container">
+        <div id="desktop-pet-bubble">喵~</div>
+        <img id="desktop-pet-img" src="">
+    </div>
+    
 <div id="daily-greeting-modal" class="hidden">
     <div class="daily-greeting-card" id="daily-greeting-card">
         <div class="dg-card-bg-layer" id="dg-card-bg-layer"></div>
@@ -27251,7 +27611,402 @@ window.tryShowDailyGreeting = function() {
     } catch(e) { console.warn('Daily greeting show error:', e); }
 };
 
+/* ==========================================
+   羁绊养成 & 桌面梦角 (终极修复版)
+   ========================================== */
 
+let companionData = {
+    plant: { name: "我们的羁绊之种", exp: 0, level: 1 },
+    pet: { name: "小团子", image: null, hunger: 80, mood: 90, clean: 100, lastUpdate: Date.now() },
+    shimeji: { image: null, size: 64, speed: 0.8, mode: 'free' } 
+};
+
+async function showCompanionModal() {
+    if(window.localforage) {
+        try {
+            const savedData = await localforage.getItem('companionData');
+            if (savedData) {
+                companionData.plant = { ...companionData.plant, ...savedData.plant };
+                companionData.pet = { ...companionData.pet, ...savedData.pet };
+                companionData.shimeji = { ...companionData.shimeji, ...savedData.shimeji };
+            }
+        } catch(e) { }
+    }
+    
+    const now = Date.now();
+    const hoursPassed = (now - companionData.pet.lastUpdate) / (1000 * 60 * 60);
+    if (hoursPassed > 0) {
+        companionData.pet.hunger = Math.max(0, Math.floor(companionData.pet.hunger - hoursPassed * 2));
+        companionData.pet.mood = Math.max(0, Math.floor(companionData.pet.mood - hoursPassed * 1.5));
+        companionData.pet.clean = Math.max(0, Math.floor(companionData.pet.clean - hoursPassed * 1));
+        companionData.pet.lastUpdate = now;
+        saveCompanionData();
+    }
+
+    updatePlantUI();
+    updatePetUI();
+    updateShimejiUI(); 
+    
+    const advModal = document.getElementById('advanced-modal');
+    const compModal = document.getElementById('companion-modal');
+    if(advModal && typeof hideModal === 'function') hideModal(advModal);
+    if(compModal && typeof showModal === 'function') showModal(compModal);
+}
+
+function switchCompTab(tab) {
+    document.getElementById('comp-tab-plant').classList.toggle('active', tab === 'plant');
+    document.getElementById('comp-tab-pet').classList.toggle('active', tab === 'pet');
+    document.getElementById('comp-tab-shimeji').classList.toggle('active', tab === 'shimeji');
+    
+    document.getElementById('comp-panel-plant').style.display = tab === 'plant' ? 'block' : 'none';
+    document.getElementById('comp-panel-pet').style.display = tab === 'pet' ? 'block' : 'none';
+    document.getElementById('comp-panel-shimeji').style.display = tab === 'shimeji' ? 'block' : 'none';
+}
+
+function saveCompanionData() {
+    companionData.plant.name = document.getElementById('plant-name-input').value || "植物";
+    companionData.pet.name = document.getElementById('pet-name-input').value || "宠物";
+    if(window.localforage) localforage.setItem('companionData', companionData);
+}
+
+function updatePlantUI() {
+    document.getElementById('plant-name-input').value = companionData.plant.name;
+    let maxExp = companionData.plant.level * 100;
+    if(companionData.plant.exp >= maxExp) {
+        companionData.plant.exp -= maxExp;
+        companionData.plant.level += 1;
+        showNotification(`🎉 植物升级到了 Lv.${companionData.plant.level}！`, 'success');
+    }
+    maxExp = companionData.plant.level * 100;
+    document.getElementById('plant-exp-text').textContent = `${companionData.plant.exp} / ${maxExp}`;
+    document.getElementById('plant-exp-bar').style.width = `${(companionData.plant.exp / maxExp) * 100}%`;
+    const stages = [ { lv: 1, emoji: "🌱", text: "沉睡的种子" }, { lv: 3, emoji: "🌿", text: "破土的嫩芽" }, { lv: 6, emoji: "🪴", text: "成长的盆栽" }, { lv: 10, emoji: "🌸", text: "盛放的羁绊" } ];
+    let currentStage = stages[0];
+    for(let s of stages) { if(companionData.plant.level >= s.lv) currentStage = s; }
+    document.getElementById('plant-stage-emoji').textContent = currentStage.emoji;
+    document.getElementById('plant-level-text').textContent = `Lv.${companionData.plant.level} ${currentStage.text}`;
+}
+
+function interactPlant(action) {
+    const emoji = document.getElementById('plant-stage-emoji');
+    emoji.style.transform = "scale(1.2)"; setTimeout(() => emoji.style.transform = "scale(1)", 200);
+    if(action === 'water') { companionData.plant.exp += 10; showNotification("💦 浇水成功", "info", 1500); }
+    if(action === 'fertilize') { companionData.plant.exp += 20; showNotification("✨ 施肥成功", "info", 1500); }
+    if(action === 'bug') { companionData.plant.exp += 15; showNotification("🐛 除虫成功", "info", 1500); }
+    updatePlantUI(); saveCompanionData();
+}
+
+function updatePetUI() {
+    document.getElementById('pet-name-input').value = companionData.pet.name;
+    document.getElementById('pet-hunger-bar').style.width = `${companionData.pet.hunger}%`;
+    document.getElementById('pet-hunger-text').textContent = `${companionData.pet.hunger}/100`;
+    document.getElementById('pet-mood-bar').style.width = `${companionData.pet.mood}%`;
+    document.getElementById('pet-mood-text').textContent = `${companionData.pet.mood}/100`;
+    document.getElementById('pet-clean-bar').style.width = `${companionData.pet.clean}%`;
+    document.getElementById('pet-clean-text').textContent = `${companionData.pet.clean}/100`;
+
+    const imgPreview = document.getElementById('pet-img-preview');
+    const icon = document.getElementById('pet-img-icon');
+    if(companionData.pet.image) {
+        imgPreview.src = companionData.pet.image;
+        imgPreview.style.display = 'block';
+        icon.style.display = 'none';
+    }
+}
+
+function interactPet(action) {
+    const imgPreview = document.getElementById('pet-img-preview');
+    imgPreview.style.transform = "rotate(10deg) scale(1.1)"; setTimeout(() => imgPreview.style.transform = "rotate(0deg) scale(1)", 200);
+    if(action === 'feed') { companionData.pet.hunger = Math.min(100, companionData.pet.hunger + 30); showNotification("🍖 喂食成功！", "success", 1500); }
+    if(action === 'play') { companionData.pet.mood = Math.min(100, companionData.pet.mood + 40); showNotification("🪀 玩得很开心！", "success", 1500); }
+    if(action === 'bathe') { companionData.pet.clean = 100; showNotification("🛁 洗香香了！", "success", 1500); }
+    updatePetUI(); saveCompanionData();
+}
+
+function handlePetImageUpload(input) {
+    const file = input.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        companionData.pet.image = e.target.result;
+        updatePetUI(); saveCompanionData(); showNotification("宠物形象已更新！", "success");
+    };
+    reader.readAsDataURL(file); input.value = '';
+}
+
+function updateShimejiUI() {
+    if (!companionData.shimeji.images) {
+        companionData.shimeji.images = {
+            idle: companionData.shimeji.image || null, walk: null, drag: null
+        };
+    }
+    const states = ['idle', 'walk', 'drag'];
+    states.forEach(state => {
+        const preview = document.getElementById(`preview-shimeji-${state}`);
+        const icon = document.getElementById(`icon-shimeji-${state}`);
+        if(companionData.shimeji.images[state]) {
+            preview.src = companionData.shimeji.images[state];
+            preview.style.display = 'block';
+            icon.style.display = 'none';
+        } else {
+            preview.style.display = 'none';
+            icon.style.display = 'block';
+        }
+    });
+    document.getElementById('shimeji-size-slider').value = companionData.shimeji.size || 80;
+    document.getElementById('shimeji-speed-slider').value = (companionData.shimeji.speed || 0.8) * 10;
+    document.getElementById('shimeji-mode-bottom').className = companionData.shimeji.mode === 'bottom' ? 'modal-btn modal-btn-primary' : 'modal-btn modal-btn-secondary';
+    document.getElementById('shimeji-mode-free').className = companionData.shimeji.mode === 'free' ? 'modal-btn modal-btn-primary' : 'modal-btn modal-btn-secondary';
+}
+
+function handleShimejiStateUpload(state, input) {
+    const file = input.files[0]; if (!file) return;
+    if (!companionData.shimeji.images) {
+        companionData.shimeji.images = { idle: companionData.shimeji.image, walk: null, drag: null };
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+        companionData.shimeji.images[state] = e.target.result;
+        updateShimejiUI(); saveCompanionData();
+        showNotification(`【${state === 'idle' ? '静止' : state === 'walk' ? '走动' : '拖拽'}】状态图已更新!`, 'success');
+        if(petEngine.active) petEngine.updateImage();
+    };
+    reader.readAsDataURL(file); input.value = '';
+}
+
+function updateShimejiSettings() {
+    companionData.shimeji.size = parseInt(document.getElementById('shimeji-size-slider').value);
+    companionData.shimeji.speed = parseInt(document.getElementById('shimeji-speed-slider').value) / 10;
+    saveCompanionData();
+    if(petEngine.active) {
+        document.getElementById('desktop-pet-container').style.width = companionData.shimeji.size + 'px';
+        document.getElementById('desktop-pet-container').style.height = companionData.shimeji.size + 'px';
+        petEngine.moveSpeed = companionData.shimeji.speed;
+    }
+}
+
+function setShimejiMode(mode) {
+    companionData.shimeji.mode = mode;
+    updateShimejiUI(); saveCompanionData();
+    if(petEngine.active) petEngine.setTarget(); 
+}
+
+// 注意这里：只有唯一的一个 petEngine！
+let petEngine = {
+    active: false,
+    x: window.innerWidth / 2, 
+    y: window.innerHeight / 2, 
+    targetX: window.innerWidth / 2,
+    targetY: window.innerHeight / 2,
+    direction: 1, 
+    state: 'idle', 
+    isDragging: false,
+    timer: null,
+    moveSpeed: 0.8,
+    currentImgSrc: '',
+    
+    init() {
+        const container = document.getElementById('desktop-pet-container');
+        
+        container.addEventListener('click', () => {
+            if (!this.active || this.isDragging) return;
+            this.speak(true); 
+        });
+
+        let startX, startY, initialX, initialY;
+        let dragThresholdPassed = false; 
+        
+        const startDrag = (clientX, clientY) => {
+            this.isDragging = true;
+            dragThresholdPassed = false;
+            this.state = 'idle'; 
+            startX = clientX; startY = clientY;
+            initialX = this.x; initialY = this.y;
+            container.style.transition = 'none'; 
+            this.updateImage(); 
+        };
+        const moveDrag = (clientX, clientY) => {
+            if (!this.isDragging) return;
+            let dx = clientX - startX;
+            let dy = clientY - startY;
+            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragThresholdPassed = true;
+            
+            this.x = initialX + dx;
+            this.y = initialY + dy;
+            this.x = Math.max(0, Math.min(window.innerWidth - companionData.shimeji.size, this.x));
+            this.y = Math.max(0, Math.min(window.innerHeight - companionData.shimeji.size, this.y));
+            this.updatePosition();
+        };
+        const endDrag = (e) => { 
+            if (!this.isDragging) return;
+            this.isDragging = false; 
+            container.style.transition = 'transform 0.1s linear';
+            this.setTarget(); 
+            this.updateImage(); 
+            
+            if(!dragThresholdPassed && e.target === container) {
+                container.click();
+            }
+        };
+
+        container.addEventListener('mousedown', e => startDrag(e.clientX, e.clientY));
+        document.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+        document.addEventListener('mouseup', endDrag);
+        container.addEventListener('touchstart', e => { startDrag(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+        document.addEventListener('touchmove', e => { if(this.isDragging){ moveDrag(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); } }, {passive:false});
+        document.addEventListener('touchend', endDrag);
+    },
+
+    start() {
+        if(!companionData.shimeji.images || !companionData.shimeji.images.idle) return showNotification("至少需要上传一张【静止】图哦", "warning");
+        this.active = true;
+        this.moveSpeed = companionData.shimeji.speed;
+        
+        const container = document.getElementById('desktop-pet-container');
+        container.style.display = 'block';
+        container.style.width = companionData.shimeji.size + 'px';
+        container.style.height = companionData.shimeji.size + 'px';
+        container.style.bottom = 'auto'; 
+        
+        this.updateImage();
+        this.setTarget();
+        this.loop();
+        showNotification("梦角已来到你的屏幕！", "success");
+    },
+
+    stop() {
+        this.active = false;
+        document.getElementById('desktop-pet-container').style.display = 'none';
+        clearTimeout(this.timer);
+    },
+
+    updateImage() {
+        const imgs = companionData.shimeji.images;
+        if (!imgs) return;
+        let newSrc = imgs.idle; 
+        if (this.isDragging && imgs.drag) newSrc = imgs.drag;
+        else if (this.state === 'walk' && imgs.walk) newSrc = imgs.walk;
+        
+        if (this.currentImgSrc !== newSrc && newSrc) {
+            this.currentImgSrc = newSrc;
+            document.getElementById('desktop-pet-img').src = newSrc;
+        }
+    },
+
+    setTarget() {
+        this.targetX = Math.random() * (window.innerWidth - companionData.shimeji.size);
+        if (companionData.shimeji.mode === 'free') {
+            this.targetY = Math.random() * (window.innerHeight - companionData.shimeji.size);
+        } else {
+            this.targetY = window.innerHeight - companionData.shimeji.size - 20; 
+        }
+    },
+
+    speak(isClick = false) {
+        const bubble = document.getElementById('desktop-pet-bubble');
+        
+        let wordsPool = [];
+        try {
+            const allReplies = typeof customReplies !== 'undefined' ? customReplies : (window._customReplies || []);
+            const disabledItems = new Set(JSON.parse(localStorage.getItem('disabledReplyItems') || '[]'));
+            const disabledGroupItems = new Set();
+            (window.customReplyGroups || []).forEach(g => {
+                if (g.disabled && Array.isArray(g.items)) g.items.forEach(item => disabledGroupItems.add(item));
+            });
+
+            wordsPool = allReplies
+                .filter(r => !disabledItems.has(r) && !disabledGroupItems.has(r))
+                .map(r => String(r || '').trim())
+                .filter(Boolean);
+        } catch(e) { }
+
+        if (wordsPool.length === 0) {
+            wordsPool = ["我在！", "贴贴~", "怎么啦？", "一直陪着你❤", "发呆中..."];
+        }
+
+        const text = wordsPool[Math.floor(Math.random() * wordsPool.length)];
+        bubble.textContent = text;
+
+        if (text.length <= 8) {
+            bubble.style.fontSize = '13px';
+            bubble.style.width = 'max-content';
+        } else if (text.length <= 20) {
+            bubble.style.fontSize = '12px';
+            bubble.style.width = '140px';
+        } else if (text.length <= 50) {
+            bubble.style.fontSize = '11px';
+            bubble.style.width = '180px';
+        } else {
+            bubble.style.fontSize = '10px';
+            bubble.style.width = '220px'; 
+        }
+
+        bubble.classList.add('show');
+        
+        const displayTime = Math.min(Math.max(2500, text.length * 150), 12000);
+        clearTimeout(this.bubbleTimer);
+        this.bubbleTimer = setTimeout(() => bubble.classList.remove('show'), displayTime);
+    },
+
+    loop() {
+        if(!this.active) return;
+
+        if (this.state === 'walk') {
+            let dx = this.targetX - this.x;
+            let dy = this.targetY - this.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if (dist < 5) {
+                this.state = 'idle';
+                this.updateImage(); 
+            } else {
+                this.x += (dx / dist) * this.moveSpeed;
+                this.y += (dy / dist) * this.moveSpeed;
+                
+                this.direction = dx > 0 ? 1 : -1;
+                document.getElementById('desktop-pet-img').classList.toggle('pet-flip-x', this.direction === -1);
+            }
+        } else {
+            if (Math.random() < 0.015) {
+                this.state = 'walk';
+                this.setTarget();
+                this.updateImage(); 
+            }
+        }
+
+        // 随机触发碎碎念 (降低频率：大约每 1~2 分钟才偶尔冒出一句话)
+const bubble = document.getElementById('desktop-pet-bubble');
+if (!this.isDragging && !bubble.classList.contains('show') && Math.random() < 0.00015) {
+    this.speak(false);
+}
+
+        this.updatePosition();
+        this.timer = requestAnimationFrame(() => this.loop());
+    },
+
+    updatePosition() {
+        const container = document.getElementById('desktop-pet-container');
+        container.style.left = this.x + 'px';
+        container.style.top = this.y + 'px';
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => petEngine.init());
+
+function toggleDesktopPet() {
+    if(petEngine.active) {
+        petEngine.stop();
+        document.getElementById('pet-desktop-toggle-knob').style.left = '3px';
+        document.getElementById('pet-desktop-toggle-row').classList.remove('active');
+    } else {
+        if(!companionData.shimeji.images || !companionData.shimeji.images.idle) {
+            if(companionData.shimeji.image) companionData.shimeji.images = { idle: companionData.shimeji.image };
+            else return showNotification("必须先上传一张【发呆(静止)】图哦！", "warning");
+        }
+        petEngine.start();
+        document.getElementById('pet-desktop-toggle-knob').style.left = '22px';
+        document.getElementById('pet-desktop-toggle-row').classList.add('active');
+    }
+}
 </script> 
     <script>
 /* --- data.js --- */
