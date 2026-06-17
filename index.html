@@ -12369,13 +12369,14 @@
     <div class="setting-pill-switch"><div class="setting-pill-knob"></div></div>
 </div>
 <!-- 新加的：分享旧时光开关 -->
-<div class="setting-pill-row" id="partner-memory-toggle">
+<div class="setting-pill-row" id="partner-memory-toggle" onclick="settings.partnerMemoryEnabled = !settings.partnerMemoryEnabled; if(typeof throttledSaveData==='function')throttledSaveData(); updateUI();">
     <span class="setting-pill-icon"><i class="fas fa-camera-retro"></i></span>
     <span class="setting-pill-label">分享旧时光 <span style="font-size:11px;color:var(--text-secondary);font-weight:400;">开启后有概率分享时光胶囊</span></span>
     <div class="setting-pill-switch"><div class="setting-pill-knob"></div></div>
 </div>
+
 <!-- 新加的：刮刮乐彩蛋开关 -->
-<div class="setting-pill-row" id="scratch-card-toggle">
+<div class="setting-pill-row" id="scratch-card-toggle" onclick="settings.scratchCardEnabled = !settings.scratchCardEnabled; if(typeof throttledSaveData==='function')throttledSaveData(); updateUI();">
     <span class="setting-pill-icon"><i class="fas fa-magic"></i></span>
     <span class="setting-pill-label">发送刮刮乐 <span style="font-size:11px;color:var(--text-secondary);font-weight:400;">开启后有概率发送刮刮乐</span></span>
     <div class="setting-pill-switch"><div class="setting-pill-knob"></div></div>
