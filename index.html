@@ -11960,7 +11960,16 @@
 
     <div id="appearance-panel-css" class="appearance-sub-panel" style="display:none;">
         <div class="settings-section">
-            <div class="settings-section-title"><i class="fas fa-comment-alt"></i>气泡 CSS</div>
+            <div class="settings-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+    <div><i class="fas fa-comment-alt"></i>气泡 CSS</div>
+    <div style="display: flex; gap: 4px; align-items: center; font-weight: 400;">
+        <select id="bubble-css-preset-select" style="padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--primary-bg); color: var(--text-primary); font-size: 11px; max-width: 80px; outline: none;">
+            <option value="">选择预设</option>
+        </select>
+        <button id="save-bubble-css-preset" class="modal-btn modal-btn-secondary" style="padding: 2px 6px; font-size: 11px;" title="保存当前CSS为预设"><i class="fas fa-save"></i></button>
+        <button id="delete-bubble-css-preset" class="modal-btn modal-btn-secondary" style="padding: 2px 6px; font-size: 11px;" title="删除选中的预设"><i class="fas fa-trash"></i></button>
+    </div>
+</div>
             <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">针对聊天气泡的样式覆盖，选择器限定在消息范围内。</div>
             <textarea id="custom-bubble-css" class="modal-textarea" style="font-family: monospace; font-size: 12px; height: 130px; white-space: pre;" placeholder=".message-sent {
   border-radius: 20px 20px 0 20px;
@@ -11993,7 +12002,16 @@
         </div>
 
         <div class="settings-section" style="margin-top:18px;">
-            <div class="settings-section-title"><i class="fas fa-paint-brush"></i>全局主题 CSS</div>
+            <div class="settings-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+    <div><i class="fas fa-paint-brush"></i>全局主题 CSS</div>
+    <div style="display: flex; gap: 4px; align-items: center; font-weight: 400;">
+        <select id="global-css-preset-select" style="padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--primary-bg); color: var(--text-primary); font-size: 11px; max-width: 80px; outline: none;">
+            <option value="">选择预设</option>
+        </select>
+        <button id="save-global-css-preset" class="modal-btn modal-btn-secondary" style="padding: 2px 6px; font-size: 11px;" title="保存当前CSS为预设"><i class="fas fa-save"></i></button>
+        <button id="delete-global-css-preset" class="modal-btn modal-btn-secondary" style="padding: 2px 6px; font-size: 11px;" title="删除选中的预设"><i class="fas fa-trash"></i></button>
+    </div>
+</div>
             <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">作用于整个页面的 CSS，可覆盖任意元素样式、CSS 变量、布局等。支持完整的 CSS 语法。</div>
             <textarea id="custom-global-css" class="modal-textarea" style="font-family: monospace; font-size: 12px; height: 160px; white-space: pre;" placeholder=":root {
   --accent-color: #ff6b9d;
@@ -17289,7 +17307,131 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+document.addEventListener('DOMContentLoaded', function() {
+    // === 气泡 CSS 预设逻辑 ===
+    const bubbleSelect = document.getElementById('bubble-css-preset-select');
+    const bubbleSaveBtn = document.getElementById('save-bubble-css-preset');
+    const bubbleDelBtn = document.getElementById('delete-bubble-css-preset');
+    const bubbleTextarea = document.getElementById('custom-bubble-css');
 
+    function loadBubblePresets() {
+        if(!bubbleSelect) return;
+        let presets = JSON.parse(localStorage.getItem('bubble_css_presets') || '{}');
+        bubbleSelect.innerHTML = '<option value="">选择预设</option>';
+        for(let name in presets) {
+            let opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            bubbleSelect.appendChild(opt);
+        }
+    }
+
+    if(bubbleSelect) {
+        loadBubblePresets();
+        bubbleSelect.addEventListener('change', function() {
+            if(!this.value) return;
+            let presets = JSON.parse(localStorage.getItem('bubble_css_presets') || '{}');
+            if(presets[this.value]) {
+                bubbleTextarea.value = presets[this.value];
+            }
+        });
+
+        bubbleSaveBtn.addEventListener('click', function() {
+            let css = bubbleTextarea.value.trim();
+            if(!css) {
+                if(typeof showNotification === 'function') showNotification('内容为空，无法保存', 'warning');
+                return;
+            }
+            let name = prompt('请输入你要保存的【气泡CSS】预设名称：');
+            if(name) {
+                let presets = JSON.parse(localStorage.getItem('bubble_css_presets') || '{}');
+                presets[name] = css;
+                localStorage.setItem('bubble_css_presets', JSON.stringify(presets));
+                loadBubblePresets();
+                bubbleSelect.value = name;
+                if(typeof showNotification === 'function') showNotification('预设保存成功', 'success');
+            }
+        });
+
+        bubbleDelBtn.addEventListener('click', function() {
+            let name = bubbleSelect.value;
+            if(!name) {
+                if(typeof showNotification === 'function') showNotification('请先在下拉框选择一个预设', 'warning');
+                return;
+            }
+            if(confirm('确定要删除气泡预设【' + name + '】吗？')) {
+                let presets = JSON.parse(localStorage.getItem('bubble_css_presets') || '{}');
+                delete presets[name];
+                localStorage.setItem('bubble_css_presets', JSON.stringify(presets));
+                loadBubblePresets();
+                bubbleTextarea.value = '';
+                if(typeof showNotification === 'function') showNotification('预设已删除', 'success');
+            }
+        });
+    }
+
+    // === 全局主题 CSS 预设逻辑 ===
+    const globalSelect = document.getElementById('global-css-preset-select');
+    const globalSaveBtn = document.getElementById('save-global-css-preset');
+    const globalDelBtn = document.getElementById('delete-global-css-preset');
+    const globalTextarea = document.getElementById('custom-global-css');
+
+    function loadGlobalPresets() {
+        if(!globalSelect) return;
+        let presets = JSON.parse(localStorage.getItem('global_css_presets') || '{}');
+        globalSelect.innerHTML = '<option value="">选择预设</option>';
+        for(let name in presets) {
+            let opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            globalSelect.appendChild(opt);
+        }
+    }
+
+    if(globalSelect) {
+        loadGlobalPresets();
+        globalSelect.addEventListener('change', function() {
+            if(!this.value) return;
+            let presets = JSON.parse(localStorage.getItem('global_css_presets') || '{}');
+            if(presets[this.value]) {
+                globalTextarea.value = presets[this.value];
+            }
+        });
+
+        globalSaveBtn.addEventListener('click', function() {
+            let css = globalTextarea.value.trim();
+            if(!css) {
+                if(typeof showNotification === 'function') showNotification('内容为空，无法保存', 'warning');
+                return;
+            }
+            let name = prompt('请输入你要保存的【全局CSS】预设名称：');
+            if(name) {
+                let presets = JSON.parse(localStorage.getItem('global_css_presets') || '{}');
+                presets[name] = css;
+                localStorage.setItem('global_css_presets', JSON.stringify(presets));
+                loadGlobalPresets();
+                globalSelect.value = name;
+                if(typeof showNotification === 'function') showNotification('预设保存成功', 'success');
+            }
+        });
+
+        globalDelBtn.addEventListener('click', function() {
+            let name = globalSelect.value;
+            if(!name) {
+                if(typeof showNotification === 'function') showNotification('请先在下拉框选择一个预设', 'warning');
+                return;
+            }
+            if(confirm('确定要删除全局预设【' + name + '】吗？')) {
+                let presets = JSON.parse(localStorage.getItem('global_css_presets') || '{}');
+                delete presets[name];
+                localStorage.setItem('global_css_presets', JSON.stringify(presets));
+                loadGlobalPresets();
+                globalTextarea.value = '';
+                if(typeof showNotification === 'function') showNotification('预设已删除', 'success');
+            }
+        });
+    }
+});
 
 
 </script>
